@@ -1,11 +1,10 @@
 import re
 import json
 import mechanicalsoup
-from bs4 import BeautifulSoup
 
 
 def check_cred(login_details):
-    browser = mechanicalsoup.Browser()
+    browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
 
     login_page = browser.get('https://inbox.myallocator.com/en/login')
     login_form = login_page.soup.select('.login_box')[0].select('form')[0]
@@ -24,7 +23,7 @@ def check_cred(login_details):
 
 
 def get_properties(login_details, default=None):
-    browser = mechanicalsoup.Browser()
+    browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
 
     login_page = browser.get('https://inbox.myallocator.com/en/login')
     login_form = login_page.soup.select('.login_box')[0].select('form')[0]
@@ -46,17 +45,17 @@ def get_properties(login_details, default=None):
         json.dump(properties, outfile)
 
 
-def download_bookings_csv(login_details, url):
-    browser = mechanicalsoup.Browser()
-
+def download_bookings_csv(login_details, url, download_queue):
+    browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
+    download_queue.put(20)
     login_page = browser.get('https://inbox.myallocator.com/en/login')
     login_form = login_page.soup.select('.login_box')[0].select('form')[0]
-
+    download_queue.put(40)
     login_form.select('#Username')[0]['value'] = login_details["ma_username"]
     login_form.select('#Password')[0]['value'] = login_details["ma_password"]
-
+    download_queue.put(60)
     browser.submit(login_form, login_page.url)
-
+    download_queue.put(80)
     property_number = re.findall(r'\d+', url)
     browser.get('https://inbox.myallocator.com'.format(url))
 
@@ -68,7 +67,9 @@ def download_bookings_csv(login_details, url):
 
     response = browser.post(
         "https://inbox.myallocator.com/dispatch/csv_export/{}/bookings.csv".format(property_number[0]), csv_data)
-
+    download_queue.put("Finished!")
+    download_queue.put(99)
     bookings = open('bookings.csv', 'wb')
     bookings.write(response.content)
     bookings.close()
+    return

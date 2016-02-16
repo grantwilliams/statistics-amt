@@ -1,6 +1,7 @@
 import os
 import sys
 import threading
+import queue
 import multiprocessing
 import tkinter as tk
 from tkinter import ttk
@@ -22,6 +23,9 @@ class MainWindow(ttk.Frame):
         self.parent = parent
         self.pack(fill=tk.BOTH, expand=True)
 
+        self.download_queue = multiprocessing.Queue()
+        self.message_queue = multiprocessing.Queue()
+
         self.ma_login_details = dict()
         if os.path.isfile("data_files/ma_login.json"):
             with open("data_files/ma_login.json") as ma_json:
@@ -32,12 +36,13 @@ class MainWindow(ttk.Frame):
             "TFrame": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}},
             "TLabel": {"configure": {"background": "#242424", "foreground": "#0FF1F0", "font": ("Helvetica Neue", 12),
                                      "padx": 20}},
-            "TButton": {"configure": {"background": "#242424", "foreground": "#0FF1F0", "font": ("Helvetica Neue", 10),
+            "TButton": {"configure": {"background": "#242424", "foreground": "#0FF1F0", "font": ("Helvetica Neue", 12),
                                       "relief": "raised", "padding": 2
                                       }},
             "TCheckbutton": {"configure": {"background": "#242424", "foreground": "#0FF1F0",
                                            "font": ("Helvetica Neue", 10)}},
-            "TEntry": {"configure": {"background": "#242424", "foreground": "#242424", "font": ("Helvetica Neue", 14)}}
+            "TEntry": {"configure": {"background": "#242424", "foreground": "#242424", "font": ("Helvetica Neue", 12)}},
+            "Horizontal.TProgressbar": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}}
         })
         self.theme.theme_use("dark_theme")
 
@@ -62,14 +67,14 @@ class MainWindow(ttk.Frame):
         self.ma_form_frame = ttk.Frame(self)
         self.ma_username_lbl = ttk.Label(self.ma_form_frame, text="MyAllocator Username: ")
         self.ma_username_var = tk.StringVar()
-        self.ma_username_entry = ttk.Entry(self.ma_form_frame, width=40, textvariable=self.ma_username_var,
+        self.ma_username_entry = ttk.Entry(self.ma_form_frame, width=30, textvariable=self.ma_username_var,
                                            state=tk.DISABLED)
         self.ma_password_lbl = ttk.Label(self.ma_form_frame, text="MyAllocator Password: ")
         self.ma_password_var = tk.StringVar()
-        self.ma_password_entry = ttk.Entry(self.ma_form_frame, show=bullet, width=40, textvariable=self.ma_password_var)
+        self.ma_password_entry = ttk.Entry(self.ma_form_frame, show=bullet, width=30, textvariable=self.ma_password_var)
         self.ma_password_confirm_lbl = ttk.Label(self.ma_form_frame, text="Confirm Password: ")
         self.ma_password_confirm_var = tk.StringVar()
-        self.ma_password_confirm_entry = ttk.Entry(self.ma_form_frame, show=bullet, width=40,
+        self.ma_password_confirm_entry = ttk.Entry(self.ma_form_frame, show=bullet, width=30,
                                                    textvariable=self.ma_password_confirm_var)
         self.ma_button_frame = ttk.Frame(self)
         self.ma_save_login_btn = ttk.Button(self.ma_button_frame, text="Save login details",
@@ -90,11 +95,11 @@ class MainWindow(ttk.Frame):
         self.ma_username_entry.grid(row=0, column=1, sticky=tk.W, padx=(0, 20), pady=2)
         self.ma_username_var.set(self.ma_login_details["ma_username"])
         self.ma_password_lbl.grid(row=1, column=0, sticky=tk.E, padx=20, pady=2)
-        self.ma_password_entry.grid(row=1, column=1, sticky=tk.W, pady=2)
+        self.ma_password_entry.grid(row=1, column=1, sticky=tk.W, padx=(0, 20), pady=2)
         self.ma_password_entry.focus()
         self.ma_password_var.set(self.ma_login_details["ma_password"])
         self.ma_password_confirm_lbl.grid(row=2, column=0, sticky=tk.E, padx=20, pady=2)
-        self.ma_password_confirm_entry.grid(row=2, column=1, sticky=tk.W, pady=2)
+        self.ma_password_confirm_entry.grid(row=2, column=1, sticky=tk.W, padx=(0, 20), pady=2)
         self.ma_password_confirm_var.set(self.ma_login_details["ma_password"])
         self.ma_button_frame.pack(fill=tk.X)
         self.ma_warning.grid(row=4, column=1, sticky=tk.W, pady=2)
@@ -158,8 +163,8 @@ class MainWindow(ttk.Frame):
             self.ma_password_entry.configure(state=tk.DISABLED)
             self.ma_password_confirm_entry.configure(state=tk.DISABLED)
             property_process = multiprocessing.Process(target=myallocator.get_properties, args=(self.ma_login_details,))
+            property_process.daemon = True
             property_process.start()
-            #myallocator.get_properties(self.ma_login_details)
             load_properties = True
         else:
             self.ma_warning_var.set("Password incorrect, could not sign in.")
@@ -187,7 +192,7 @@ class MainWindow(ttk.Frame):
             self.ma_properties_frame.pack(fill=tk.X)
             self.ma_properties_lbl.grid(row=0, column=0, sticky=tk.E, padx=20, pady=2)
             self.ma_properties_combobox.grid(row=0, column=1, sticky=tk.W, pady=2)
-            self.ma_properties_btn.grid(row=0, column= 2, sticky=tk.W, padx=20, pady=2)
+            self.ma_properties_btn.grid(row=0, column=2, sticky=tk.E, padx=20, pady=2)
             self.ma_properties_combobox.current(0)
             self.ma_properties_serparator.pack(fill=tk.X, padx=20, pady=2)
 
@@ -195,9 +200,17 @@ class MainWindow(ttk.Frame):
         property = self.ma_properties[self.ma_properties_combobox.get()]
         if property != "":
             self.ma_properties_btn.configure(state=tk.DISABLED)
-            download_process = multiprocessing.Process(target=myallocator.download_bookings_csv, args=(self.ma_login_details, property))
+            download_process = multiprocessing.Process(
+                target=myallocator.download_bookings_csv, args=(self.ma_login_details, property, self.download_queue))
+            download_process.daemon = True
             download_process.start()
-            #myallocator.download_bookings_csv(self.ma_login_details, property)
+            self.download_bar = ttk.Progressbar(self.ma_properties_frame, orient="horizontal", mode="determinate")
+            self.download_bar.grid(row=1, column=1, sticky=tk.W+tk.E)
+            self.download_lbl_var = tk.StringVar()
+            self.download_lbl = ttk.Label(self.ma_properties_frame, textvariable=self.download_lbl_var)
+            self.download_lbl.grid(row=1, column=2, sticky=tk.W, padx=20)
+            self.download_lbl_var.set("Downloading...")
+            self.parent.after(100, self.load_bar)
             self.setup_sa()
         else:
             self.ma_properties_warn_lbl = ttk.Label(self.ma_properties_frame, style="Warning.TLabel",
@@ -206,6 +219,7 @@ class MainWindow(ttk.Frame):
 
     def setup_sa(self):
         bullet = "\u2022"
+        bundeslaende = {}
         #  Statistik Amt login widgets
         self.sa_title_separator = ttk.Separator(self, orient=tk.HORIZONTAL)
         self.sa_form_separator = ttk.Separator(self, orient=tk.HORIZONTAL)
@@ -213,11 +227,11 @@ class MainWindow(ttk.Frame):
         self.sa_title_lbl = ttk.Label(self.sa_title_frame, style="title.TLabel", text="Statistik Amt login details")
         self.sa_form_frame = ttk.Frame(self)
         self.sa_user_id_lbl = ttk.Label(self.sa_form_frame, text="Statistik Amt ID nr: ")
-        self.sa_user_id_entry = ttk.Entry(self.sa_form_frame, width=40)
+        self.sa_user_id_entry = ttk.Entry(self.sa_form_frame, width=30)
         self.sa_password_lbl = ttk.Label(self.sa_form_frame, text="Statistik Amt Password: ")
-        self.sa_password_entry = ttk.Entry(self.sa_form_frame, show=bullet, width=40)
+        self.sa_password_entry = ttk.Entry(self.sa_form_frame, show=bullet, width=30)
         self.sa_password_confirm_lbl = ttk.Label(self.sa_form_frame, text="Confirm Password: ")
-        self.sa_password_confirm_entry = ttk.Entry(self.sa_form_frame, show=bullet, width=40)
+        self.sa_password_confirm_entry = ttk.Entry(self.sa_form_frame, show=bullet, width=30)
 
         self.sa_separator = ttk.Separator(self.sa_form_frame, orient=tk.HORIZONTAL)
         self.bundesland_value = tk.StringVar()
@@ -232,9 +246,33 @@ class MainWindow(ttk.Frame):
         self.number_beds_lbl = ttk.Label(self.sa_form_frame, text="Number of Beds: ")
         self.number_beds_entry = ttk.Entry(self.sa_form_frame, width=10)
 
+        #  pack Statistik Amt widgets
         self.sa_title_frame.pack(fill=tk.X)
         self.sa_title_lbl.pack(side=tk.LEFT, padx=20)
         self.sa_title_separator.pack(fill=tk.X, padx=20, pady=2)
+        self.sa_form_frame.pack(fill=tk.X)
+        self.sa_user_id_lbl.grid(row=0, column=0,sticky=tk.E, padx=20, pady=2)
+        self.sa_user_id_entry.grid(row=0, column=1, sticky=tk.W, padx=(0, 20), pady=2)
+        self.sa_password_lbl.grid(row=1, column=0, sticky=tk.E, padx=20, pady=2)
+        self.sa_password_entry.grid(row=1, column=1, sticky=tk.W, padx=(0, 20), pady=2)
+        self.sa_password_confirm_lbl.grid(row=2, column=0, sticky=tk.E, padx=20, pady=2)
+        self.sa_password_confirm_entry.grid(row=2, column=1, sticky=tk.W, padx=(0, 20), pady=2)
+
+    def load_bar(self):
+        try:
+            message = self.download_queue.get(0)
+            if message == "Finished!":
+                self.download_lbl_var.set(message)
+                self.parent.after(100, self.load_bar)
+            if 3 > len(str(message)) > 0:
+                if message <= 80:
+                    self.download_bar.step(20)
+                    self.parent.after(100, self.load_bar)
+                else:
+                    self.download_bar.step(19)
+        except queue.Empty:
+            self.parent.after(100, self.load_bar)
+
 
 
 def main():
