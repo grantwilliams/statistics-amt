@@ -1,9 +1,12 @@
 import re
+import os
 import json
+import time
 import mechanicalsoup
+import main
 
 
-def check_cred(login_details):
+def check_cred(login_details, ma_cred_queue):
     browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
 
     login_page = browser.get('https://inbox.myallocator.com/en/login')
@@ -17,9 +20,11 @@ def check_cred(login_details):
     property_tags = home_page.soup.find_all("a", class_="property-link")
 
     if len(property_tags) > 0:
-        return True
+        main.ma_cred_ok = True
+        ma_cred_queue.put("ma ok")
     else:
-        return False
+        main.ma_cred_ok = False
+        ma_cred_queue.put("ma not ok")
 
 
 def get_properties(login_details, default=None):
@@ -36,16 +41,18 @@ def get_properties(login_details, default=None):
     property_tags = home_page.soup.find_all("a", class_="property-link")
 
     properties = {
-        "--Select Property--": ""
+        "--Select Property--": ["", ""]
     }
     for tag in property_tags:
-        properties[tag.text] = tag.get("href")
+        properties[tag.text] = [tag.get("href"), ""]
 
     with open("data_files/properties.json", "w") as outfile:
         json.dump(properties, outfile)
 
 
 def download_bookings_csv(login_details, url, download_queue):
+    if os.path.isfile("bookings.csv"):
+        return
     browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
     download_queue.put(20)
     login_page = browser.get('https://inbox.myallocator.com/en/login')
