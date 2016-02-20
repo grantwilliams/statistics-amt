@@ -153,7 +153,7 @@ class MainWindow(ttk.Frame):
             self.ma_login_details["ma_username"] = self.ma_username
             self.ma_login_details["ma_password"] = self.ma_password
             with open("data_files/.ma_login.json", "w") as outfile:
-                json.dump(self.ma_login_details, outfile)
+                json.dump(self.ma_login_details, indent=4, sort_keys=True, fp=outfile)
                 self.check_ma_credential("ma save details")
         elif self.ma_username == '' or self.ma_password == '' or self.ma_password_confirm == '':
             self.ma_warning_var.set("One or more fields are empty!")
@@ -176,6 +176,7 @@ class MainWindow(ttk.Frame):
             self.ma_password_entry.focus()
 
     def get_properties(self, status):
+        self.ma_get_properties_btn.configure(state=tk.DISABLED)
         if status == "good":
             self.ma_button_frame.destroy()
             self.ma_password_entry.configure(state=tk.DISABLED)
@@ -217,6 +218,7 @@ class MainWindow(ttk.Frame):
 
     def download_bookings(self):
         property = self.ma_properties[self.ma_properties_combobox.get()][0]
+        self.ma_properties_warn_var = tk.StringVar()
         if property != "":
             self.ma_download_btn.configure(state=tk.DISABLED)
             download_process = multiprocessing.Process(
@@ -233,8 +235,9 @@ class MainWindow(ttk.Frame):
             self.setup_sa()
         else:
             self.ma_properties_warn_lbl = ttk.Label(self.ma_properties_frame, style="Warning.TLabel",
-                                                    text="Please choose a property first.")
+                                                    textvariable=self.ma_properties_warn_var)
             self.ma_properties_warn_lbl.grid(row=1, column=1, columnspan=2, sticky=tk.W)
+            self.ma_properties_warn_var.set("Please choose a property first.")
 
     def setup_sa(self):
         bullet = "\u2022"
@@ -289,14 +292,15 @@ class MainWindow(ttk.Frame):
         self.bundesland_combobox_lbl.grid(row=3, column=0, sticky=tk.E, padx=20, pady=2)
         self.bundesland_combobox.grid(row=3, column=1, sticky=tk.W, padx=(0, 20), pady=2)
         self.bundesland_combobox.current(0)
-        if self.sa_login_details["sa_password"] == "":
+        if self.sa_login_details.get(self.ma_properties_combobox.get(), {}).get("sa_password", "") == "":
             self.sa_warning_lbl.grid(row=4, column=1, sticky=tk.W, pady=2)
             self.sa_save_login_btn.grid(row=4, column=1, sticky=tk.E, padx=20, pady=2)
         else:
-            self.sa_user_id_var.set(self.sa_login_details["sa_user_id"])
-            self.sa_password_var.set(self.sa_login_details["sa_password"])
-            self.sa_password_confirm_var.set(self.sa_login_details["sa_password"])
-            self.bundesland_combobox.current(combobox_dicts.bundeslaende[self.sa_login_details["bundesland"]][1])
+            self.sa_user_id_var.set(self.sa_login_details[self.ma_properties_combobox.get()]["sa_user_id"])
+            self.sa_password_var.set(self.sa_login_details[self.ma_properties_combobox.get()]["sa_password"])
+            self.sa_password_confirm_var.set(self.sa_login_details[self.ma_properties_combobox.get()]["sa_password"])
+            self.bundesland_combobox.current(
+                combobox_dicts.bundeslaende[self.sa_login_details[self.ma_properties_combobox.get()]["bundesland"]][1])
             self.sa_user_id_entry.configure(state=tk.DISABLED)
             self.sa_password_entry.configure(state=tk.DISABLED)
             self.sa_password_confirm_entry.configure(state=tk.DISABLED)
@@ -312,27 +316,29 @@ class MainWindow(ttk.Frame):
         self.calculate_btn.grid(row=0, column=3, padx=20, sticky=tk.E, pady=2)
         self.sa_calculate_separator.grid(row=2, column=0, columnspan=4, sticky=tk.W+tk.E, padx=20)
 
-    def check_sa_credential(self, call_origin):
+    def check_sa_credential(self, call_origin, ma_property):
         sa_cred_thread = threading.Thread(
-            target=statistic_amt.check_cred, args=[self.sa_login_details, self.sa_cred_queue, call_origin])
+            target=statistic_amt.check_cred, args=[self.sa_login_details, self.sa_cred_queue, call_origin, ma_property])
         sa_cred_thread.daemon = True
         sa_cred_thread.start()
         self.parent.after(100, self.check_sa_cred_queue)
 
     def save_sa_login(self):
+        self.sa_property = self.ma_properties_combobox.get()
         self.sa_user_id = self.sa_user_id_entry.get()
         self.sa_password = self.sa_password_entry.get()
         self.sa_password_confirm = self.sa_password_confirm_entry.get()
-        self.bundesland = combobox_dicts.bundeslaende[self.bundesland_combobox.get()]
+        self.bundesland = combobox_dicts.bundeslaende[self.bundesland_combobox.get()][0]
+        self.sa_login_details[self.sa_property] = {}
 
         if self.sa_password == self.sa_password_confirm and self.sa_user_id != "" and self.sa_password != "":
             if self.bundesland != "":
-                self.sa_login_details["sa_user_id"] = self.sa_user_id
-                self.sa_login_details["sa_password"] = self.sa_password
-                self.sa_login_details["bundesland"] = self.bundesland
+                self.sa_login_details[self.sa_property]["sa_user_id"] = self.sa_user_id
+                self.sa_login_details[self.sa_property]["sa_password"] = self.sa_password
+                self.sa_login_details[self.sa_property]["bundesland"] = self.bundesland
                 with open("data_files/.sa_login.json", 'w', encoding="utf-8") as outfile:
-                    json.dump(self.sa_login_details, outfile)
-                    self.check_sa_credential("sa save details")
+                    json.dump(self.sa_login_details, indent=4, sort_keys=True, fp=outfile)
+                    self.check_sa_credential("sa save details", self.sa_property)
             else:
                 self.sa_warning_var.set("Please choose a Bundesland.")
 
@@ -363,34 +369,58 @@ class MainWindow(ttk.Frame):
         self.sa_save_login_btn.grid(row=4, column=1, sticky=tk.E, padx=20, pady=2)
 
     def calculate_statistics(self):
+        today_date = datetime.strptime(str(datetime.now())[:7], "%Y-%m")
         month_chosen = self.month_combobox.get()
         year_chosen = self.year_combobox.get()
         filename = "bookings.csv"
-
-        calculate_thread = threading.Thread(
-            target=calculate_statistics.calculate, args=[month_chosen, year_chosen, filename])
-        calculate_thread.daemon = True
-        calculate_thread.start()
-        self.download_bar = ttk.Progressbar(self.ma_properties_frame, orient="horizontal", mode="determinate")
-        self.download_bar.grid(row=1, column=1, sticky=tk.W+tk.E)
-        self.download_lbl_var = tk.StringVar()
-        self.download_lbl = ttk.Label(self.ma_properties_frame, textvariable=self.download_lbl_var)
-        self.download_lbl.grid(row=1, column=2, sticky=tk.W, padx=20)
-        self.download_lbl_var.set("Downloading...")
-        self.parent.after(100, self.calculate_progress_bar)
+        self.calculate_warning_var = tk.StringVar()
+        self.calculate_warning = ttk.Label(self.calculate_frame, style="Warning.TLabel",
+                                           textvariable=self.calculate_warning_var)
+        chosen_date_obj = None
+        try:
+            chosen_date_obj = datetime.strptime("{}-{}".format(year_chosen, month_chosen), "%Y-%B")
+        except ValueError:
+            self.calculate_warning.grid(row=1, column=1, columnspan=2, sticky=tk.W, pady=2)
+            self.calculate_warning_var.set("Please choose a date first.")
+        try:
+            if self.download_lbl_var.get() == "Finished!" and chosen_date_obj < today_date:
+                calculate_thread = threading.Thread(
+                    target=calculate_statistics.calculate, args=[month_chosen, year_chosen, filename,
+                                                                 self.calculate_statistics_queue])
+                calculate_thread.daemon = True
+                calculate_thread.start()
+                self.calculate_progress_bar = ttk.Progressbar(self.calculate_frame, orient="horizontal", mode="determinate")
+                self.calculate_progress_bar.grid(row=1, column=1, columnspan=2, sticky=tk.W+tk.E, pady=2)
+                self.calculate_progress_lbl_var = tk.StringVar()
+                self.calculate_progress_lbl = ttk.Label(self.calculate_frame, textvariable=self.calculate_progress_lbl_var)
+                self.calculate_progress_lbl.grid(row=1, column=3, sticky=tk.W, padx=20)
+                self.calculate_progress_lbl_var.set("Calculating...")
+                self.parent.after(100, self.process_calculate_progress_bar)
+            elif self.download_lbl_var.get() != "Finished!":
+                self.calculate_warning.grid(row=1, column=1, columnspan=2, sticky=tk.W, pady=2)
+                self.calculate_warning_var.set("Wait for bookings to finish downloading.")
+            elif chosen_date_obj >= today_date:
+                self.calculate_warning.grid(row=1, column=1, columnspan=2, sticky=tk.W, pady=2)
+                self.calculate_warning_var.set("Please choose a date in the past.")
+        except TypeError:
+            self.calculate_warning.grid(row=1, column=1, columnspan=2, sticky=tk.W, pady=2)
+            self.calculate_warning_var.set("Please choose a date first.")
 
     def load_bar(self):
         try:
             message = self.download_queue.get(0)
             if message == "Finished!":
                 self.download_lbl_var.set(message)
+            elif isinstance(message, list):
+                self.download_bar.grid_forget()
+                self.download_lbl.grid_forget()
+                self.ma_properties_warn_lbl = ttk.Label(self.ma_properties_frame, style="Warning.TLabel",
+                                                    textvariable=self.ma_properties_warn_var)
+                self.ma_properties_warn_lbl.grid(row=1, column=1, columnspan=2, sticky=tk.W)
+                self.ma_properties_warn_var.set(message[1])
+            else:
+                self.download_bar.step(message)
                 self.parent.after(100, self.load_bar)
-            if 3 > len(str(message)) > 0:
-                if message <= 80:
-                    self.download_bar.step(20)
-                    self.parent.after(100, self.load_bar)
-                else:
-                    self.download_bar.step(19)
         except queue.Empty:
             self.parent.after(100, self.load_bar)
 
@@ -405,13 +435,14 @@ class MainWindow(ttk.Frame):
                 self.get_properties("good")
             elif message == "ma not ok get properties":
                 self.get_properties("bad")
+            elif isinstance(message, list):
+                self.ma_warning_var.set(message[1])
         except queue.Empty:
             self.parent.after(100, self.check_ma_cred_queue)
 
     def check_sa_cred_queue(self):
         try:
             message = self.sa_cred_queue.get(0)
-            print(message)
             if message == "sa ok sa save details":
                 self.sa_credential_ok("good")
             elif message == "sa not ok sa save details":
@@ -419,8 +450,16 @@ class MainWindow(ttk.Frame):
         except queue.Empty:
             self.parent.after(100, self.check_sa_cred_queue)
 
-    def calculate_progress_bar(self):
-        pass
+    def process_calculate_progress_bar(self):
+        try:
+            message = self.calculate_statistics_queue.get(0)
+            if message == "Finished!":
+                self.calculate_progress_lbl_var.set(message)
+            if 3 > len(str(message)) > 0:
+                self.calculate_progress_bar.step(message)
+                self.parent.after(100, self.process_calculate_progress_bar)
+        except queue.Empty:
+            self.parent.after(100, self.process_calculate_progress_bar)
 
 
 def main():

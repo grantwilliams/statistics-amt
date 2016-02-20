@@ -53,15 +53,21 @@ def check_code(code):
             return ISO3166.get(code)
 
 
-def calculate(month, year, filename):
+def calculate(month, year, filename, progress_queue):
     locale.setlocale(locale.LC_TIME, "de_DE")
     month_to_calculate = datetime.strptime("{}-{}".format(month, year), "%B-%Y")
+    progress_queue.put(10)
     with open(filename, encoding='utf-8') as file_read:
         bookings_csv_read = csv.reader(file_read)
         next(bookings_csv_read)
+        progress_queue.put(10)
+        queue_next = 20
         for row in bookings_csv_read:
             row_date = datetime.strptime(row[6], "%Y-%m-%d")
             if row_date.month == month_to_calculate.month and row_date.year == month_to_calculate.year:
+                if queue_next < 55:
+                    progress_queue.put(1)
+                    queue_next += 1
                 if row[9] == "No":
                     if row[13].upper() in statistics:
                         statistics[row[13].upper()][0] += int(row[15])
@@ -78,7 +84,7 @@ def calculate(month, year, filename):
                     elif row[13] not in statistics:
                         statistics["INFO NOT GIVEN"][0] += int(row[15])
                         statistics["INFO NOT GIVEN"][1] += int(row[8])*int(row[15])
-
+        progress_queue.put(10)
         if not os.path.isdir("Statistics_Saved_Files"):
             os.makedirs("Statistics_Saved_Files")
         with open("Statistics_Saved_Files/Statistics {} {}.csv".format(month, year), 'w', encoding='utf-8') as write_file:
@@ -87,7 +93,11 @@ def calculate(month, year, filename):
             statistics_csv_write.writerow(['Country', 'Guests', 'Nights'])
             total_guests = 0
             total_overnights = 0
+            queue_next = 65
             for key, value in statistics.items():
+                if queue_next < 95:
+                    progress_queue.put(1)
+                    queue_next += 1
                 if key == "USA":
                     statistics_csv_write.writerow([key] + [str(value[0])] + [str(value[1])])
                 else:
@@ -100,4 +110,6 @@ def calculate(month, year, filename):
                     total_overnights += int(value[1])
                 except:
                     pass
+            progress_queue.put(4)
             statistics_csv_write.writerow(['Total', total_guests, total_overnights])
+            progress_queue.put("Finished!")

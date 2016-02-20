@@ -4,17 +4,17 @@ from selenium.common import exceptions
 import psutil
 
 
-def check_cred(login_details, sa_cred_queue, call_origin):
+def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
     driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
 
     driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
-    driver.find_element_by_link_text(login_details["bundesland"][0]).click()
+    driver.find_element_by_link_text(login_details[ma_property]["bundesland"]).click()
     driver.set_window_size(1920, 1080)
 
     user_id = driver.find_element_by_id("loginid")
-    user_id.send_keys(login_details["sa_user_id"])
+    user_id.send_keys(login_details[ma_property]["sa_user_id"])
     password = driver.find_element_by_id("password")
-    password.send_keys(login_details["sa_password"])
+    password.send_keys(login_details[ma_property]["sa_password"])
     password.submit()
 
     try:
