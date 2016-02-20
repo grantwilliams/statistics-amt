@@ -3,6 +3,8 @@ import sys
 import time
 import threading
 import queue
+from datetime import datetime
+import locale
 import multiprocessing
 import tkinter as tk
 from tkinter import ttk
@@ -10,19 +12,20 @@ import json
 import myallocator
 import statistic_amt
 import combobox_dicts
+import calculate_statistics
 
 
 """
 ma refers to MyAllocator
 sa refers to Statistik Amt
 """
-ma_cred_ok = False
 
 
 class MainWindow(ttk.Frame):
 
     def __init__(self, parent):
         ttk.Frame.__init__(self, parent)
+        locale.setlocale(locale.LC_TIME, "de_DE")
 
         self.parent = parent
         self.pack(fill=tk.BOTH, expand=True)
@@ -30,7 +33,8 @@ class MainWindow(ttk.Frame):
         self.download_queue = multiprocessing.Queue()
         self.message_queue = multiprocessing.Queue()
         self.ma_cred_queue = queue.Queue()
-        self.sa_cred_queue = multiprocessing.Queue()
+        self.sa_cred_queue = queue.Queue()
+        self.calculate_statistics_queue = queue.Queue()
 
         self.ma_login_details = dict()
         if os.path.isfile("data_files/.ma_login.json"):
@@ -65,9 +69,9 @@ class MainWindow(ttk.Frame):
         self.title_frame.pack(fill=tk.X)
         self.title = ttk.Label(self.title_frame, text="Statistics")
         self.title.pack(side=tk.TOP, pady=10)
-        self.setup_ma("main")
+        self.setup_ma()
 
-    def setup_ma(self, origin):
+    def setup_ma(self):
         bullet = "\u2022"
         #  MyAllocator login widgets
         self.ma_title_separator = ttk.Separator(self, orient=tk.HORIZONTAL)
@@ -88,9 +92,9 @@ class MainWindow(ttk.Frame):
                                                    textvariable=self.ma_password_confirm_var)
         self.ma_button_frame = ttk.Frame(self)
         self.ma_save_login_btn = ttk.Button(self.ma_button_frame, text="Save login details",
-                                            command=lambda: self.save_ma_login("save_login"))
+                                            command=self.save_ma_login)
         self.ma_get_properties_btn = ttk.Button(self.ma_button_frame, text="Get Properties",
-                                                command=self.get_properties)
+                                                command=lambda: self.check_ma_credential("get properties"))
         self.ma_change_detials_btn = ttk.Button(self.ma_button_frame, text="Change login details",
                                                 command=self.ma_change_details)
         self.ma_warning_var = tk.StringVar()
@@ -133,49 +137,24 @@ class MainWindow(ttk.Frame):
         self.ma_save_login_btn.pack(side=tk.RIGHT, padx=20, pady=2)
         self.parent.update()
 
-    #  tries to sign into MA
-    def check_ma_cred(self, ma_login):
+    def check_ma_credential(self, call_origin):
         ma_cred_thread = threading.Thread(
-            target=myallocator.check_cred, args=[ma_login, self.ma_cred_queue])
+            target=myallocator.check_cred, args=[self.ma_login_details, self.ma_cred_queue, call_origin])
         ma_cred_thread.daemon = True
         ma_cred_thread.start()
         self.parent.after(100, self.check_ma_cred_queue)
-        # self.ma_cred_ok = False
-        ma_cred_thread.join()
-        return ma_cred_ok
 
-    def save_ma_login(self, origin):
+    def save_ma_login(self):
         self.ma_username = self.ma_username_entry.get()
         self.ma_password = self.ma_password_entry.get()
         self.ma_password_confirm = self.ma_password_confirm_entry.get()
 
-        if origin == "save_login":
-            if self.ma_password == self.ma_password_confirm and self.ma_username != '' and self.ma_password != '':
-                self.ma_warning_var.set("Saved!")
-                self.ma_login_details["ma_username"] = self.ma_username
-                self.ma_login_details["ma_password"] = self.ma_password
-                with open("data_files/.ma_login.json", "w") as outfile:
-                    json.dump(self.ma_login_details, outfile)
-
-                    # ma_cred_thread = threading.Thread(
-                    #     target=myallocator.check_cred, args=[self.ma_login_details, self.ma_cred_queue])
-                    # ma_cred_thread.daemon = True
-                    # ma_cred_thread.start()
-                    # self.parent.after(100, self.check_ma_cred_queue)
-
-                # tries to login to MA with credentials given, and checks whether it was successful
-            if self.check_ma_cred(self.ma_login_details):
-                self.ma_save_login_btn.forget()
-                self.ma_change_detials_btn.pack(side=tk.RIGHT, padx=(5, 20))
-                self.ma_get_properties_btn.pack(side=tk.RIGHT, pady=2)
-                self.ma_password_entry.configure(state=tk.DISABLED)
-                self.ma_password_confirm_entry.configure(state=tk.DISABLED)
-                self.parent.update()
-            else:
-                self.ma_warning_var.set("Password incorrect, could not sign in.")
-                self.ma_password_var.set("")
-                self.ma_password_confirm_var.set("")
-                self.ma_password_entry.focus()
+        if self.ma_password == self.ma_password_confirm and self.ma_username != '' and self.ma_password != '':
+            self.ma_login_details["ma_username"] = self.ma_username
+            self.ma_login_details["ma_password"] = self.ma_password
+            with open("data_files/.ma_login.json", "w") as outfile:
+                json.dump(self.ma_login_details, outfile)
+                self.check_ma_credential("ma save details")
         elif self.ma_username == '' or self.ma_password == '' or self.ma_password_confirm == '':
             self.ma_warning_var.set("One or more fields are empty!")
         elif self.ma_password != self.ma_password_confirm:
@@ -183,20 +162,21 @@ class MainWindow(ttk.Frame):
 
     def ma_credential_ok(self, status):
         if status == "good":
+            self.ma_warning_var.set("Saved!")
             self.ma_save_login_btn.forget()
             self.ma_change_detials_btn.pack(side=tk.RIGHT, padx=(5, 20))
             self.ma_get_properties_btn.pack(side=tk.RIGHT, pady=2)
             self.ma_password_entry.configure(state=tk.DISABLED)
             self.ma_password_confirm_entry.configure(state=tk.DISABLED)
             self.parent.update()
-        else:
+        elif status == "bad":
             self.ma_warning_var.set("Password incorrect, could not sign in.")
             self.ma_password_var.set("")
             self.ma_password_confirm_var.set("")
             self.ma_password_entry.focus()
 
-    def get_properties(self):
-        if self.check_ma_cred(self.ma_login_details):
+    def get_properties(self, status):
+        if status == "good":
             self.ma_button_frame.destroy()
             self.ma_password_entry.configure(state=tk.DISABLED)
             self.ma_password_confirm_entry.configure(state=tk.DISABLED)
@@ -281,16 +261,19 @@ class MainWindow(ttk.Frame):
         self.sa_warning_var = tk.StringVar()
         self.sa_warning_lbl = ttk.Label(self.sa_form_frame, textvariable=self.sa_warning_var, style="Warning.TLabel")
 
-        self.sa_separator = ttk.Separator(self.sa_form_frame, orient=tk.HORIZONTAL)
+        self.sa_login_separator = ttk.Separator(self.sa_form_frame, orient=tk.HORIZONTAL)
         self.bundesland_combobox_lbl = ttk.Label(self.sa_form_frame, text="Bundesland: ")
-        self.bundesland_combobox = ttk.Combobox(self.sa_form_frame, value=sorted(list(bundeslaende.keys())))
-        self.date_lbl = ttk.Label(self.sa_form_frame, text="Submission Month: ")
-        self.month_combobox = ttk.Combobox(self.sa_form_frame, values=list(combobox_dicts.months.keys()), width=8)
-        self.year_combobox = ttk.Combobox(self.sa_form_frame, values=sorted(list(combobox_dicts.years.keys())), width=7)
-        self.calculate_btn = ttk.Button(self.sa_form_frame, text="Calculate Stats")
+        self.bundesland_combobox = ttk.Combobox(self.sa_form_frame, value=list(bundeslaende.keys()))
+        self.calculate_frame = ttk.Frame(self)
+        self.date_lbl = ttk.Label(self.calculate_frame, text="Submission Month: ")
+        self.month_combobox = ttk.Combobox(self.calculate_frame, values=list(combobox_dicts.months.keys()), width=8)
+        self.year_combobox = ttk.Combobox(self.calculate_frame,
+                                          values=sorted(list(combobox_dicts.years.keys())), width=7)
+        self.calculate_btn = ttk.Button(self.calculate_frame, text="Calculate Stats", command=self.calculate_statistics)
+        self.sa_calculate_separator = ttk.Separator(self.calculate_frame, orient=tk.HORIZONTAL)
 
-        self.number_beds_lbl = ttk.Label(self.sa_form_frame, text="Number of Beds: ")
-        self.number_beds_entry = ttk.Entry(self.sa_form_frame, width=10)
+        # self.number_beds_lbl = ttk.Label(self.sa_form_frame, text="Number of Beds: ")
+        # self.number_beds_entry = ttk.Entry(self.sa_form_frame, width=10)
 
         #  pack Statistik Amt widgets
         self.sa_title_frame.pack(fill=tk.X)
@@ -313,30 +296,28 @@ class MainWindow(ttk.Frame):
             self.sa_user_id_var.set(self.sa_login_details["sa_user_id"])
             self.sa_password_var.set(self.sa_login_details["sa_password"])
             self.sa_password_confirm_var.set(self.sa_login_details["sa_password"])
+            self.bundesland_combobox.current(combobox_dicts.bundeslaende[self.sa_login_details["bundesland"]][1])
             self.sa_user_id_entry.configure(state=tk.DISABLED)
             self.sa_password_entry.configure(state=tk.DISABLED)
             self.sa_password_confirm_entry.configure(state=tk.DISABLED)
             self.sa_warning_lbl.grid(row=4, column=1, sticky=tk.W, pady=2)
             self.sa_change_details_btn.grid(row=4, column=1, sticky=tk.E, padx=20, pady=2)
-        self.sa_separator.grid(row=5, column=0, columnspan=2, sticky=tk.W+tk.E, padx=20)
-        self.date_lbl.grid(row=7, column=0, sticky=tk.E, padx=20, pady=2)
-        self.month_combobox.grid(row=7, column=1, sticky=tk.W, padx=(0, 10))
+        self.sa_login_separator.grid(row=5, column=0, columnspan=2, sticky=tk.W+tk.E, padx=20)
+        self.calculate_frame.pack(fill=tk.X)
+        self.date_lbl.grid(row=0, column=0, sticky=tk.E, padx=20, pady=2)
+        self.month_combobox.grid(row=0, column=1, sticky=tk.W+tk.E, padx=(0, 10), pady=2)
         self.month_combobox.current(0)
-        self.year_combobox.grid(row=7, column=1, padx=(0, 10))
+        self.year_combobox.grid(row=0, column=2, sticky=tk.W+tk.E, padx=(0, 10), pady=2)
         self.year_combobox.current(0)
-        self.calculate_btn.grid(row=7, column=1, padx=(0, 20), sticky=tk.E)
-        self.sa_separator.grid(row=9, column=0, columnspan=2, sticky=tk.W+tk.E, padx=20)
+        self.calculate_btn.grid(row=0, column=3, padx=20, sticky=tk.E, pady=2)
+        self.sa_calculate_separator.grid(row=2, column=0, columnspan=4, sticky=tk.W+tk.E, padx=20)
 
-    def check_sa_cred(self, sa_login):
-        sa_cred_process = multiprocessing.Process(
-            target=statistic_amt.check_cred, args=[sa_login, self.sa_cred_queue])
-        sa_cred_process.daemon = True
-        sa_cred_process.start()
-        self.sa_cred_ok = False
+    def check_sa_credential(self, call_origin):
+        sa_cred_thread = threading.Thread(
+            target=statistic_amt.check_cred, args=[self.sa_login_details, self.sa_cred_queue, call_origin])
+        sa_cred_thread.daemon = True
+        sa_cred_thread.start()
         self.parent.after(100, self.check_sa_cred_queue)
-        while not self.sa_cred_ok:
-            pass
-        return self.sa_cred_ok
 
     def save_sa_login(self):
         self.sa_user_id = self.sa_user_id_entry.get()
@@ -350,24 +331,25 @@ class MainWindow(ttk.Frame):
                 self.sa_login_details["sa_password"] = self.sa_password
                 self.sa_login_details["bundesland"] = self.bundesland
                 with open("data_files/.sa_login.json", 'w', encoding="utf-8") as outfile:
-                        json.dump(self.sa_login_details, outfile)
-                if statistic_amt.check_cred(self.sa_login_details):
-                    self.sa_warning_var.set("Saved!")
-                    self.sa_save_login_btn.forget()
-                    self.sa_change_details_btn.grid(row=4, column=1, sticky=tk.E, padx=20, pady=2)
-                    self.sa_warning_lbl.forget()
-                    self.sa_warning_lbl.grid(row=4, column=1, sticky=tk.W, pady=2)
-                    self.sa_user_id_entry.configure(state=tk.DISABLED)
-                    self.sa_password_entry.configure(state=tk.DISABLED)
-                    self.sa_password_confirm_entry.configure(state=tk.DISABLED)
-                else:
-                    self.sa_warning_var.set("Details incorrect, could not sign in")
-                    self.sa_user_id_var.set("")
-                    self.sa_user_id_entry.focus()
-                    self.sa_password_var.set("")
-                    self.sa_password_confirm_var.set("")
+                    json.dump(self.sa_login_details, outfile)
+                    self.check_sa_credential("sa save details")
             else:
                 self.sa_warning_var.set("Please choose a Bundesland.")
+
+    def sa_credential_ok(self, status):
+        if status == "good":
+            self.sa_warning_var.set("Saved!")
+            self.sa_change_details_btn.grid(row=4, column=1, sticky=tk.E, padx=20, pady=2)
+            self.sa_save_login_btn.grid_forget()
+            self.sa_user_id_entry.configure(state=tk.DISABLED)
+            self.sa_password_entry.configure(state=tk.DISABLED)
+            self.sa_password_confirm_entry.configure(state=tk.DISABLED)
+        else:
+            self.sa_warning_var.set("Details incorrect, could not sign in")
+            self.sa_user_id_var.set("")
+            self.sa_user_id_entry.focus()
+            self.sa_password_var.set("")
+            self.sa_password_confirm_var.set("")
 
     def change_sa_login(self):
         self.sa_user_id_var.set("")
@@ -377,14 +359,25 @@ class MainWindow(ttk.Frame):
         self.sa_password_entry.configure(state=tk.ACTIVE)
         self.sa_password_confirm_var.set("")
         self.sa_password_confirm_entry.configure(state=tk.ACTIVE)
-        self.sa_change_details_btn.destroy()
+        self.sa_change_details_btn.grid_forget()
         self.sa_save_login_btn.grid(row=4, column=1, sticky=tk.E, padx=20, pady=2)
-        self.sa_warning_lbl.forget()
-        self.sa_warning_lbl.grid(row=4, column=1, sticky=tk.W, pady=2)
 
+    def calculate_statistics(self):
+        month_chosen = self.month_combobox.get()
+        year_chosen = self.year_combobox.get()
+        filename = "bookings.csv"
 
-
-
+        calculate_thread = threading.Thread(
+            target=calculate_statistics.calculate, args=[month_chosen, year_chosen, filename])
+        calculate_thread.daemon = True
+        calculate_thread.start()
+        self.download_bar = ttk.Progressbar(self.ma_properties_frame, orient="horizontal", mode="determinate")
+        self.download_bar.grid(row=1, column=1, sticky=tk.W+tk.E)
+        self.download_lbl_var = tk.StringVar()
+        self.download_lbl = ttk.Label(self.ma_properties_frame, textvariable=self.download_lbl_var)
+        self.download_lbl.grid(row=1, column=2, sticky=tk.W, padx=20)
+        self.download_lbl_var.set("Downloading...")
+        self.parent.after(100, self.calculate_progress_bar)
 
     def load_bar(self):
         try:
@@ -398,20 +391,20 @@ class MainWindow(ttk.Frame):
                     self.parent.after(100, self.load_bar)
                 else:
                     self.download_bar.step(19)
-                    # self.setup_sa()
         except queue.Empty:
             self.parent.after(100, self.load_bar)
 
     def check_ma_cred_queue(self):
         try:
             message = self.ma_cred_queue.get(0)
-            print(message)
-            if message == "ma ok":
-                # self.ma_credential_ok("good")
-                self.ma_cred_ok = True
-            elif message == "ma not ok":
-                self.ma_cred_ok = False
-                # self.ma_credential_ok("bad")
+            if message == "ma ok ma save details":
+                self.ma_credential_ok("good")
+            elif message == "ma not ok ma save details":
+                self.ma_credential_ok("bad")
+            elif message == "ma ok get properties":
+                self.get_properties("good")
+            elif message == "ma not ok get properties":
+                self.get_properties("bad")
         except queue.Empty:
             self.parent.after(100, self.check_ma_cred_queue)
 
@@ -419,13 +412,15 @@ class MainWindow(ttk.Frame):
         try:
             message = self.sa_cred_queue.get(0)
             print(message)
-            if message == "sa ok":
-                self.sa_cred_ok = True
-            elif message == "sa not ok":
-                self.sa_cred_ok = False
+            if message == "sa ok sa save details":
+                self.sa_credential_ok("good")
+            elif message == "sa not ok sa save details":
+                self.sa_credential_ok("bad")
         except queue.Empty:
             self.parent.after(100, self.check_sa_cred_queue)
 
+    def calculate_progress_bar(self):
+        pass
 
 
 def main():

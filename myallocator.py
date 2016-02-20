@@ -1,12 +1,10 @@
 import re
 import os
 import json
-import time
 import mechanicalsoup
-import main
 
 
-def check_cred(login_details, ma_cred_queue):
+def check_cred(login_details, ma_cred_queue, call_origin):
     browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
 
     login_page = browser.get('https://inbox.myallocator.com/en/login')
@@ -20,11 +18,9 @@ def check_cred(login_details, ma_cred_queue):
     property_tags = home_page.soup.find_all("a", class_="property-link")
 
     if len(property_tags) > 0:
-        main.ma_cred_ok = True
-        ma_cred_queue.put("ma ok")
+        ma_cred_queue.put("ma ok {}".format(call_origin))
     else:
-        main.ma_cred_ok = False
-        ma_cred_queue.put("ma not ok")
+        ma_cred_queue.put("ma not ok {}".format(call_origin))
 
 
 def get_properties(login_details, default=None):

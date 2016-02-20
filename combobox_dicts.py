@@ -3,23 +3,23 @@ from collections import OrderedDict
 
 
 bundeslaende = (
-    ("--Select Bundesland--", ""),
-    ("Schleswig-Holstein", "Schleswig-Holstein"),
-    ("Hamburg", "Hamburg"),
-    ("Niedersachsen", "Niedersachsen"),
-    ("Bremen", "Bremen"),
-    ("Nordrhein-Westfalen", "Nordrhein-Westfalen"),
-    ("Hessen", "Hessen"),
-    ("Rheinland-Pfalz", "Rheinland-Pfalz"),
-    ("Baden-Württemberg", "Baden-Württemberg"),
-    ("Bayern", "Bayern"),
-    ("Saarland", "Saarland"),
-    ("Berlin", "Berlin"),
-    ("Brandenburg", "Brandenburg"),
-    ("Mecklenburg-Vorpommern", "Mecklenburg-Vorpommern"),
-    ("Sachsen", "Sachsen"),
-    ("Sachsen-Anhalt", "Sachsen-Anhalt"),
-    ("Thüringen", "Thüringen")
+    ("--Select Bundesland--", ["", 0]),
+    ("Schleswig-Holstein", ["Schleswig-Holstein", 1]),
+    ("Hamburg", ["Hamburg", 2]),
+    ("Niedersachsen", ["Niedersachsen", 3]),
+    ("Bremen", ["Bremen", 4]),
+    ("Nordrhein-Westfalen", ["Nordrhein-Westfalen", 5]),
+    ("Hessen", ["Hessen", 6]),
+    ("Rheinland-Pfalz", ["Rheinland-Pfalz", 7]),
+    ("Baden-Württemberg", ["Baden-Württemberg", 8]),
+    ("Bayern", ["Bayern", 9]),
+    ("Saarland", ["Saarland", 10]),
+    ("Berlin", ["Berlin", 11]),
+    ("Brandenburg", ["Brandenburg", 12]),
+    ("Mecklenburg-Vorpommern", ["Mecklenburg-Vorpommern", 13]),
+    ("Sachsen", ["Sachsen", 14]),
+    ("Sachsen-Anhalt", ["Sachsen-Anhalt", 15]),
+    ("Thüringen", ["Thüringen", 16])
 )
 bundeslaende = OrderedDict(bundeslaende)
 
