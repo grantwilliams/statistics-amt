@@ -25,7 +25,10 @@ class MainWindow(ttk.Frame):
 
     def __init__(self, parent):
         ttk.Frame.__init__(self, parent)
-        locale.setlocale(locale.LC_TIME, "de_DE")
+        if sys.platform == "win32":
+            locale.setlocale(locale.LC_TIME, "deu_deu")
+        else:
+            locale.setlocale(locale.LC_TIME, "de_DE")
 
         self.parent = parent
         self.pack(fill=tk.BOTH, expand=True)

@@ -54,7 +54,10 @@ def check_code(code):
 
 
 def calculate(month, year, filename, progress_queue):
-    locale.setlocale(locale.LC_TIME, "de_DE")
+    if sys.platform == "win32":
+        locale.setlocale(locale.LC_TIME, "deu_deu")
+    else:
+        locale.setlocale(locale.LC_TIME, "de_DE")
     month_to_calculate = datetime.strptime("{}-{}".format(month, year), "%B-%Y")
     progress_queue.put(10)
     with open(filename, encoding='utf-8') as file_read:
