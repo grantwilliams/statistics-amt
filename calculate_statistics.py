@@ -1,7 +1,7 @@
 import os
 import sys
 import csv
-import calendar
+import json
 import locale
 from datetime import datetime
 from country_dicts import *
@@ -87,10 +87,13 @@ def calculate(month, year, filename, progress_queue):
                     elif row[13] not in statistics:
                         statistics["INFO NOT GIVEN"][0] += int(row[15])
                         statistics["INFO NOT GIVEN"][1] += int(row[8])*int(row[15])
+        if queue_next != 55:
+            progress_queue.put(55-queue_next)
         progress_queue.put(10)
         if not os.path.isdir("Statistics_Saved_Files"):
             os.makedirs("Statistics_Saved_Files")
-        with open("Statistics_Saved_Files/Statistics {} {}.csv".format(month, year), 'w', encoding='utf-8') as write_file:
+        with open("Statistics_Saved_Files/Statistics-{}-{}.csv".format(month, year), 'w',
+                  encoding='utf-8') as write_file:
             statistics_csv_write = csv.writer(write_file)
 
             statistics_csv_write.writerow(['Country', 'Guests', 'Nights'])
@@ -107,12 +110,15 @@ def calculate(month, year, filename, progress_queue):
                     statistics_csv_write.writerow([key.title()] + [str(value[0])] + [str(value[1])])
                 try:
                     total_guests += int(value[0])
-                except:
-                    pass
+                except ValueError:
+                    pass  # Empty dictionary entry for separator between country groups
                 try:
                     total_overnights += int(value[1])
-                except:
-                    pass
+                except ValueError:
+                    pass  # Empty dictionary entry for separator between country groups
             progress_queue.put(4)
             statistics_csv_write.writerow(['Total', total_guests, total_overnights])
+        with open("Statistics_Saved_Files/Statistics-{}-{}.json".format(month, year), 'w',
+                  encoding='utf-8') as write_file:
+            json.dump(statistics, indent=4, fp=write_file)
             progress_queue.put("Finished!")

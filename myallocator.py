@@ -1,8 +1,6 @@
 import re
 import os
 import json
-import socket
-import requests.exceptions, requests.packages
 import mechanicalsoup
 
 
@@ -28,7 +26,7 @@ def check_cred(login_details, ma_cred_queue, call_origin):
             ma_cred_queue.put("ma not ok {}".format(call_origin))
 
 
-def get_properties(login_details, default=None):
+def get_properties(login_details):
     browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
 
     login_page = browser.get('https://inbox.myallocator.com/en/login')
@@ -45,13 +43,14 @@ def get_properties(login_details, default=None):
         "--Select Property--": ["", ""]
     }
     for tag in property_tags:
-        properties[tag.text] = [tag.get("href"), ""]
+        properties[tag.text] = [tag.get("href")]
 
     with open("data_files/properties.json", "w") as outfile:
         json.dump(properties, indent=4, sort_keys=True, fp=outfile)
 
 
 def download_bookings_csv(login_details, url, download_queue):
+    #  TODO Delete this before release
     if os.path.isfile("bookings.csv"):
         download_queue.put(99)
         download_queue.put("Finished!")

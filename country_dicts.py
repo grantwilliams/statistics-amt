@@ -290,7 +290,7 @@ statistics = (
     ("HUNGARY", [0, 0]),
     ("CYPRUS", [0, 0]),
     ("OTHER EUROPE", [0, 0]),
-    (" ", [" ","  "]),
+    (" ", [" ", "  "]),
     ("SOUTH AFRICA", [0, 0]),
     ("OTHER AFRICA", [0, 0]),
     ("  ", [" ", "  "]),
