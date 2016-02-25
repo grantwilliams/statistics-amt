@@ -1,7 +1,6 @@
 import os
 import sys
 import csv
-import json
 import locale
 from datetime import datetime
 from country_dicts import *

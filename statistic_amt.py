@@ -39,7 +39,7 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
     driver.quit()
 
 
-def send(login_details, options_details, progress_queue, ma_property, statistics_results):
+def send(login_details, options_details, progress_queue, ma_property, statistics_results, already_sent_continue):
     def stats_generator():
         for item in statistics_results.keys():
             yield [statistics_results[item][0], statistics_results[item][1]]
@@ -51,7 +51,9 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
         open_on = options_details["open on"]
     # driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
     driver = webdriver.Firefox()
-    driver.maximize_window()
+    # driver.maximize_window()
+    progress_queue.put(10)
+    progress_queue.put("Openings virtual browser...")
 
     driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
     driver.find_element_by_link_text(login_details[ma_property]["bundesland"]).click()
@@ -61,23 +63,31 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     password = driver.find_element_by_id("password")
     password.send_keys(login_details[ma_property]["sa_password"])
     password.submit()
+    progress_queue.put("Logging into Statistiks Amt site...")
+    progress_queue.put(10)
 
     driver.find_element_by_link_text(options_details["sub month"]).click()
 
     if len(BeautifulSoup(driver.page_source, "html.parser").find_all("div", {"id": "app_message"})) > 0:
-        progress_queue.put("already sent")
-        return
+        if not already_sent_continue:
+            progress_queue.put("already sent")
+            driver.quit()
+            return
+    progress_queue.put(10)
+    progress_queue.put("Entering number of beds and closure dates...")
     driver.find_element_by_id("confirmButton").click()
     driver.find_element_by_link_text("Angebot").click()
     driver.find_element_by_name("AnzBetten").send_keys(options_details["beds"])
     driver.find_element_by_link_text("Schließung/Abmeldung").click()
     driver.find_element_by_name("Schliessung").send_keys(options_details["closed on"], Keys.TAB, open_on, Keys.TAB,
                                                          options_details["force closure"])
-
+    progress_queue.put(10)
     driver.find_element_by_link_text("Gäste aus Europa").click()
 
+    progress_queue.put("Entering statistics for guests from Europe...")
     current_field = driver.find_element_by_name("ANK_Deutschland")
     for i in range(20):
+        progress_queue.put(1)
         current_stats = next(statistics_generator)
         if current_field.get_attribute("class") == "class275" or current_field.get_attribute("class") == "class285":
             current_field.send_keys(Keys.TAB, current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
@@ -88,8 +98,10 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
 
     driver.find_element_by_link_text("Gäste aus Europa, Afrika").click()
 
+    progress_queue.put("Entering statistics for guests from Europe and Africa...")
     current_field = driver.find_element_by_name("ANK_Polen")
     for i in range(17):
+        progress_queue.put(1)
         current_stats = next(statistics_generator)
         if current_field.get_attribute("class") == "class275" or current_field.get_attribute("class") == "class285":
             current_field.send_keys(Keys.TAB, current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
@@ -100,8 +112,10 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
 
     driver.find_element_by_link_text("Gäste aus Amerika, Asien, u. a.").click()
 
+    progress_queue.put("Entering statistics for guests from America, Asia etc...")
     current_field = driver.find_element_by_name("ANK_Kanada")
     for i in range(17):
+        progress_queue.put(1)
         current_stats = next(statistics_generator)
         if current_field.get_attribute("class") == "class275" or current_field.get_attribute("class") == "class285":
             current_field.send_keys(Keys.TAB, current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
@@ -111,4 +125,6 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
             current_field = driver.switch_to.active_element
 
     statistics_generator.close()
+    progress_queue.put(5)
+    progress_queue.put("Finished")
     # driver.quit()
