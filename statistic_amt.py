@@ -5,9 +5,6 @@ from bs4 import BeautifulSoup
 
 
 def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
-    print(login_details)
-    print(call_origin)
-    print(ma_property)
     driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
 
     driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
@@ -41,12 +38,17 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
             sa_cred_queue.put("sa ok {}".format(call_origin))
 
 
-def send(login_details, options_details, progress_queue, ma_property):
+def send(login_details, options_details, progress_queue, ma_property, statistics_results):
+    def stats_generator():
+        for item in statistics_results.keys():
+            yield [statistics_results[item][0], statistics_results[item][1]]
+    statistics_generator = stats_generator()
+
     if options_details["open on"] == "..":
         open_on = ""
     else:
         open_on = options_details["open on"]
-    driver = webdriver.Firefox()
+    driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
     driver.maximize_window()
 
     driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
@@ -72,7 +74,26 @@ def send(login_details, options_details, progress_queue, ma_property):
 
     driver.find_element_by_link_text("Gäste aus Europa").click()
 
+    current_field = driver.find_element_by_name("ANK_Deutschland")
+    for i in range(20):
+        current_stats = next(statistics_generator)
+        current_field.send_keys(current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
+        current_field = driver.switch_to.active_element
 
-send({'Jetpak Alternative': {'beds': 51, 'bundesland': 'Berlin', 'sa_password': 'Jetpak1969@', 'sa_user_id': '1102523001'}},
-     {'open on': '11.03.2016', 'beds': 51, 'closed on': '04', 'sub month': 'Januar 2016', 'force closure': '28'},
-     None, "Jetpak Alternative")
+    driver.find_element_by_link_text("Gäste aus Europa, Afrika").click()
+
+    current_field = driver.find_element_by_name("ANK_Polen")
+    for i in range(17):
+        current_stats = next(statistics_generator)
+        current_field.send_keys(current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
+        current_field = driver.switch_to.active_element
+
+    driver.find_element_by_link_text("Gäste aus Amerika, Asien, u. a.").click()
+
+    current_field = driver.find_element_by_name("ANK_Kanada")
+    for i in range(17):
+        current_stats = next(statistics_generator)
+        current_field.send_keys(current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
+        current_field = driver.switch_to.active_element
+
+    driver.quit()

@@ -9,6 +9,7 @@ import locale
 import multiprocessing
 import tkinter as tk
 from tkinter import ttk, scrolledtext
+from collections import OrderedDict
 import json
 import myallocator
 import statistic_amt
@@ -42,7 +43,7 @@ class MainWindow(ttk.Frame):
         self.ma_cred_queue = queue.Queue()
         self.sa_cred_queue = queue.Queue()
         self.calculate_statistics_queue = queue.Queue()
-        self.sa_send_queue = multiprocessing.Queue()
+        self.sa_send_queue = queue.Queue()
 
         self.ma_login_details = dict()
         if os.path.isfile("data_files/.ma_login.json"):
@@ -410,6 +411,7 @@ class MainWindow(ttk.Frame):
             self.calculate_warning_var.set("Please choose a date first.")
 
     def setup_sa_options(self):
+        self.statistics_results = None
         window_width = self.parent.winfo_width()
         wrap_length = window_width * 0.50
         #  Statistics Amt options Widgets
@@ -471,18 +473,18 @@ class MainWindow(ttk.Frame):
                 "sub month": "{} {}".format(self.month_combobox.get(), self.year_combobox.get())
             }
             self.sa_login_details[self.sa_property]["beds"] = self.beds
-            print(sa_options_dict)
             try:
                 if int(self.beds) > 0:
                     with open("data_files/.sa_login.json", 'w', encoding='utf-8') as outfile:
                         json.dump(self.sa_login_details, indent=4, sort_keys=True, fp=outfile)
 
-                        send_stats_thread = multiprocessing.Process(
+                        send_stats_thread = threading.Thread(
                             target=statistic_amt.send, args=[self.sa_login_details, sa_options_dict, self.sa_send_queue,
-                                                             self.sa_property])
+                                                             self.sa_property, self.statistics_results])
                         send_stats_thread.daemon = True
                         send_stats_thread.start()
                         self.parent.after(100, self.process_sa_send_queue)
+                        send_stats_thread.join()
             except TypeError and ValueError:
                 self.sa_options_warning_var.set("Number of beds must be an integer")
                 self.send_to_sa.configure(state=tk.ACTIVE)
@@ -553,9 +555,12 @@ class MainWindow(ttk.Frame):
             if message == "Finished!":
                 self.calculate_progress_lbl_var.set(message)
                 self.setup_sa_options()
+                self.parent.after(100, self.process_calculate_progress_bar)
             if 3 > len(str(message)) > 0:
                 self.calculate_progress_bar.step(message)
                 self.parent.after(100, self.process_calculate_progress_bar)
+            if isinstance(message, OrderedDict):
+                self.statistics_results = message
         except queue.Empty:
             self.parent.after(100, self.process_calculate_progress_bar)
 

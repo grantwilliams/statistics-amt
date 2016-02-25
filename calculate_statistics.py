@@ -122,3 +122,4 @@ def calculate(month, year, filename, progress_queue):
                   encoding='utf-8') as write_file:
             json.dump(statistics, indent=4, fp=write_file)
             progress_queue.put("Finished!")
+            progress_queue.put(statistics)

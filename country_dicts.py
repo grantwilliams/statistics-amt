@@ -290,17 +290,14 @@ statistics = (
     ("HUNGARY", [0, 0]),
     ("CYPRUS", [0, 0]),
     ("OTHER EUROPE", [0, 0]),
-    (" ", [" ", "  "]),
     ("SOUTH AFRICA", [0, 0]),
     ("OTHER AFRICA", [0, 0]),
-    ("  ", [" ", "  "]),
     ("CANADA", [0, 0]),
     ("USA", [0, 0]),
     ("MIDDLE AMERICA/CARIBBEAN", [0, 0]),
     ("BRAZIL", [0, 0]),
     ("OTHER SOUTH AMERICA", [0, 0]),
     ("OTHER NORTH AMERICA", [0, 0]),
-    ("   ", [" ", "  "]),
     ("ARAB GULF", [0, 0]),
     ("CHINA/HONG KONG", [0, 0]),
     ("INDIA", [0, 0]),
@@ -309,12 +306,10 @@ statistics = (
     ("SOUTH KOREA", [0, 0]),
     ("TAIWAN", [0, 0]),
     ("OTHER ASIA", [0, 0]),
-    ("    ", [" ", "  "]),
     ("AUSTRALIA", [0, 0]),
     ("NEW ZEALAND", [0, 0]),
-    ("INFO NOT GIVEN", [0, 0]),
-    ("     ", [" ", "  "])
-    )
+    ("INFO NOT GIVEN", [0, 0])
+)
 
 statistics = OrderedDict(statistics)
 
