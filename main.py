@@ -28,8 +28,12 @@ class MainWindow(ttk.Frame):
         ttk.Frame.__init__(self, parent)
         if sys.platform == "win32":
             locale.setlocale(locale.LC_TIME, "deu_deu")
+            warning_fs = "-size 8"
+            self.field_width = 40
         else:
             locale.setlocale(locale.LC_TIME, "de_DE")
+            warning_fs = "-size 10"
+            self.field_width = 30
 
         self.parent = parent
         self.pack(fill=tk.BOTH, expand=True)
@@ -51,18 +55,6 @@ class MainWindow(ttk.Frame):
                 self.sa_login_details = json.load(sa_json)
 
         self.theme = ttk.Style()
-        # self.theme.theme_create("dark_theme", parent="clam", settings={
-        #     "TFrame": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}},
-        #     "TLabel": {"configure": {"background": "#242424", "foreground": "#0FF1F0", "font": ("Helvetica Neue", fs),
-        #                              "padx": 20}},
-        #     "TButton": {"configure": {"background": "#242424", "foreground": "#0FF1F0", "font": ("Helvetica Neue", fs),
-        #                               "relief": "raised", "padding": 2
-        #                               }},
-        #     "TCheckbutton": {"configure": {"background": "#242424", "foreground": "#0FF1F0",
-        #                                    "font": ("Helvetica Neue", 10)}},
-        #     "TEntry": {"configure": {"background": "#242424", "foreground": "#242424", "font": ("Helvetica Neue", fs)}},
-        #     "Horizontal.TProgressbar": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}}
-        # })
         self.theme.theme_create("dark_theme", parent="alt", settings={
             "TFrame": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}},
             "TLabel": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}},
@@ -78,7 +70,9 @@ class MainWindow(ttk.Frame):
         self.label_title = ttk.Style()
         self.label_title.configure("title.TLabel", font="-size 18")
         self.warning_lbl_style = ttk.Style()
-        self.warning_lbl_style.configure('Warning.TLabel', font="-size 10", foreground="red")
+        self.warning_lbl_style.configure('Warning.TLabel', font=warning_fs, foreground="red")
+        self.options_lbl_style = ttk.Style()
+        self.options_lbl_style.configure('Options.TLabel', font="-size 10")
 
         self.title_frame = ttk.Frame(self)
         self.title_frame.pack(fill=tk.X)
@@ -96,11 +90,11 @@ class MainWindow(ttk.Frame):
         self.ma_form_frame = ttk.Frame(self)
         self.ma_username_lbl = ttk.Label(self.ma_form_frame, text="MyAllocator Username: ")
         self.ma_username_var = tk.StringVar()
-        self.ma_username_entry = ttk.Entry(self.ma_form_frame, width=30, textvariable=self.ma_username_var,
+        self.ma_username_entry = ttk.Entry(self.ma_form_frame, width=self.field_width, textvariable=self.ma_username_var,
                                            state=tk.DISABLED)
         self.ma_password_lbl = ttk.Label(self.ma_form_frame, text="MyAllocator Password: ")
         self.ma_password_var = tk.StringVar()
-        self.ma_password_entry = ttk.Entry(self.ma_form_frame, show=bullet, width=30, textvariable=self.ma_password_var)
+        self.ma_password_entry = ttk.Entry(self.ma_form_frame, show=bullet, width=self.field_width, textvariable=self.ma_password_var)
         self.ma_button_frame = ttk.Frame(self)
         self.ma_save_login_btn = ttk.Button(self.ma_button_frame, text="Save login details",
                                             command=self.save_ma_login)
@@ -219,7 +213,8 @@ class MainWindow(ttk.Frame):
         property = self.ma_properties[self.ma_properties_combobox.get()][0]
         self.ma_properties_warn_var = tk.StringVar()
         if property != "" and self.ma_properties_warn_var.get() in ["", "Finished!"]:
-            # self.ma_download_btn.configure(state=tk.DISABLED)
+            self.ma_download_btn.configure(state=tk.DISABLED)
+            self.ma_properties_combobox.configure(state=tk.DISABLED)
             try:
                 self.sa_title_frame.forget()
                 self.sa_form_frame.forget()
@@ -257,10 +252,10 @@ class MainWindow(ttk.Frame):
         self.sa_form_frame = ttk.Frame(self)
         self.sa_user_id_var = tk.StringVar()
         self.sa_user_id_lbl = ttk.Label(self.sa_form_frame, text="Statistik Amt ID nr: ")
-        self.sa_user_id_entry = ttk.Entry(self.sa_form_frame, width=30, textvariable=self.sa_user_id_var)
+        self.sa_user_id_entry = ttk.Entry(self.sa_form_frame, width=self.field_width, textvariable=self.sa_user_id_var)
         self.sa_password_var = tk.StringVar()
         self.sa_password_lbl = ttk.Label(self.sa_form_frame, text="Statistik Amt Password: ")
-        self.sa_password_entry = ttk.Entry(self.sa_form_frame, show=bullet, width=30, textvariable=self.sa_password_var)
+        self.sa_password_entry = ttk.Entry(self.sa_form_frame, show=bullet, width=self.field_width, textvariable=self.sa_password_var)
         self.sa_save_login_btn = ttk.Button(self.sa_form_frame, text="Save login details", command=self.save_sa_login)
         self.sa_change_details_btn = ttk.Button(self.sa_form_frame, text="Change login details",
                                                 command=self.change_sa_login)
@@ -303,6 +298,7 @@ class MainWindow(ttk.Frame):
                 combobox_dicts.bundeslaende[self.sa_login_details[self.sa_property]["bundesland"]][1])
             self.sa_user_id_entry.configure(state=tk.DISABLED)
             self.sa_password_entry.configure(state=tk.DISABLED)
+            self.bundesland_combobox.configure(state=tk.DISABLED)
             self.sa_warning_lbl.grid(row=3, column=1, sticky=tk.W, pady=2)
             self.sa_change_details_btn.grid(row=3, column=1, sticky=tk.E, padx=20, pady=2)
         self.calculate_frame.pack(fill=tk.X)
@@ -316,25 +312,38 @@ class MainWindow(ttk.Frame):
         self.sa_calculate_separator.grid(row=3, column=0, columnspan=4, sticky=tk.W+tk.E, padx=20)
 
     def check_sa_credential(self, call_origin, ma_property):
-        self.sa_warning_var.set("Signing into Statistics Amt site...")
-        sa_cred_thread = threading.Thread(
-            target=statistic_amt.check_cred, args=[self.sa_login_details, self.sa_cred_queue, call_origin, ma_property])
-        sa_cred_thread.daemon = True
-        sa_cred_thread.start()
-        self.parent.after(100, self.check_sa_cred_queue)
-
-    def save_sa_login(self):
         time_now = datetime.now().time()
         eleven = datetime.strptime("23:00", "%H:%M").time()
         eleven_thirty = datetime.strptime("23:30", "%H:%M").time()
+        if eleven <= time_now <= eleven_thirty:
+            if call_origin == "sa save details":
+                self.sa_warning_var.set("Statistics Amt website is not available between 23:00 - 23:30")
+            elif call_origin == "send stats":
+                self.sa_options_warning_var.set("Statistics Amt website is not available between 23:00 - 23:30")
+        else:
+            if call_origin == "sa save details":
+                self.sa_warning_var.set("Signing into Statistics Amt site...")
+                sa_cred_thread = threading.Thread(
+                    target=statistic_amt.check_cred, args=[self.sa_login_details, self.sa_cred_queue, call_origin, ma_property])
+                sa_cred_thread.daemon = True
+                sa_cred_thread.start()
+                self.parent.after(100, self.check_sa_cred_queue)
+            elif call_origin == "send stats":
+                self.send_to_sa.configure(state=tk.DISABLED)
+                self.sa_options_warning_var.set("Signing into Statistics Amt site...")
+                sa_cred_thread = threading.Thread(
+                    target=statistic_amt.check_cred, args=[self.sa_login_details, self.sa_cred_queue, call_origin, ma_property])
+                sa_cred_thread.daemon = True
+                sa_cred_thread.start()
+                self.parent.after(100, self.check_sa_cred_queue)
+
+    def save_sa_login(self):
         self.sa_property = self.ma_properties_combobox.get()
         self.sa_user_id = self.sa_user_id_entry.get()
         self.sa_password = self.sa_password_entry.get()
         self.bundesland = combobox_dicts.bundeslaende[self.bundesland_combobox.get()][0]
 
-        if eleven <= time_now <= eleven_thirty:
-            self.sa_warning_var.set("Statistics Amt website is not available between 23:00 - 23:30")
-        elif self.sa_user_id != "" and self.sa_password != "":
+        if self.sa_user_id != "" and self.sa_password != "":
             if self.bundesland != "":
                 if self.sa_login_details.get(self.sa_property, {}).get("sa_user_id", "") == "":
                     self.sa_login_details[self.sa_property] = {}
@@ -351,6 +360,8 @@ class MainWindow(ttk.Frame):
                     self.check_sa_credential("sa save details", self.sa_property)
             else:
                 self.sa_warning_var.set("Please choose a Bundesland.")
+        else:
+            self.sa_warning_var.set("One or more fields empty!")
 
     def sa_credential_ok(self, status):
         if status == "good":
@@ -359,9 +370,11 @@ class MainWindow(ttk.Frame):
             self.sa_save_login_btn.grid_forget()
             self.sa_user_id_entry.configure(state=tk.DISABLED)
             self.sa_password_entry.configure(state=tk.DISABLED)
+            self.bundesland_combobox.configure(state=tk.DISABLED)
         else:
             self.sa_user_id_entry.configure(state=tk.ACTIVE)
             self.sa_password_entry.configure(state=tk.ACTIVE)
+            self.bundesland_combobox.configure(state=tk.DISABLED)
             self.sa_warning_var.set("Details incorrect, could not sign in")
             self.sa_user_id_var.set("")
             self.sa_user_id_entry.focus()
@@ -373,6 +386,7 @@ class MainWindow(ttk.Frame):
         self.sa_user_id_entry.focus()
         self.sa_password_var.set("")
         self.sa_password_entry.configure(state=tk.ACTIVE)
+        self.bundesland_combobox.configure(state=tk.ACTIVE)
         self.sa_change_details_btn.grid_forget()
         self.sa_save_login_btn.grid(row=3, column=1, sticky=tk.E, padx=20, pady=2)
 
@@ -391,27 +405,31 @@ class MainWindow(ttk.Frame):
             self.calculate_warning.grid(row=1, column=1, columnspan=2, sticky=tk.W, pady=2)
             self.calculate_warning_var.set("Please choose a date first.")
         try:
-            if self.download_lbl_var.get() == "Finished!" and chosen_date_obj < today_date:
-                calculate_thread = threading.Thread(
-                    target=calculate_statistics.calculate, args=[month_chosen, year_chosen, filename,
-                                                                 self.calculate_statistics_queue])
-                calculate_thread.daemon = True
-                calculate_thread.start()
-                self.calculate_progress_bar = ttk.Progressbar(self.calculate_frame, orient="horizontal",
-                                                              mode="determinate")
-                self.calculate_progress_bar.grid(row=2, column=1, columnspan=2, sticky=tk.W+tk.E, pady=2)
-                self.calculate_progress_lbl_var = tk.StringVar()
-                self.calculate_progress_lbl = ttk.Label(self.calculate_frame,
-                                                        textvariable=self.calculate_progress_lbl_var)
-                self.calculate_progress_lbl.grid(row=2, column=3, sticky=tk.W, padx=20)
-                self.calculate_progress_lbl_var.set("Calculating...")
-                self.parent.after(100, self.process_calculate_progress_bar)
-            elif self.download_lbl_var.get() != "Finished!":
+            if not self.sa_save_login_btn.winfo_ismapped():
+                if self.download_lbl_var.get() == "Finished!" and chosen_date_obj < today_date:
+                    calculate_thread = threading.Thread(
+                        target=calculate_statistics.calculate, args=[month_chosen, year_chosen, filename,
+                                                                     self.calculate_statistics_queue])
+                    calculate_thread.daemon = True
+                    calculate_thread.start()
+                    self.calculate_progress_bar = ttk.Progressbar(self.calculate_frame, orient="horizontal",
+                                                                  mode="determinate")
+                    self.calculate_progress_bar.grid(row=2, column=1, columnspan=2, sticky=tk.W+tk.E, pady=2)
+                    self.calculate_progress_lbl_var = tk.StringVar()
+                    self.calculate_progress_lbl = ttk.Label(self.calculate_frame,
+                                                            textvariable=self.calculate_progress_lbl_var)
+                    self.calculate_progress_lbl.grid(row=2, column=3, sticky=tk.W, padx=20)
+                    self.calculate_progress_lbl_var.set("Calculating...")
+                    self.parent.after(100, self.process_calculate_progress_bar)
+                elif self.download_lbl_var.get() != "Finished!":
+                    self.calculate_warning.grid(row=2, column=1, columnspan=2, sticky=tk.W, pady=2)
+                    self.calculate_warning_var.set("Wait for bookings to finish downloading.")
+                elif chosen_date_obj >= today_date:
+                    self.calculate_warning.grid(row=2, column=1, columnspan=2, sticky=tk.W, pady=2)
+                    self.calculate_warning_var.set("Please choose a date in the past.")
+            else:
                 self.calculate_warning.grid(row=2, column=1, columnspan=2, sticky=tk.W, pady=2)
-                self.calculate_warning_var.set("Wait for bookings to finish downloading.")
-            elif chosen_date_obj >= today_date:
-                self.calculate_warning.grid(row=2, column=1, columnspan=2, sticky=tk.W, pady=2)
-                self.calculate_warning_var.set("Please choose a date in the past.")
+                self.calculate_warning_var.set("Please fill in login details above first")
         except TypeError:
             self.calculate_warning.grid(row=2, column=1, columnspan=2, sticky=tk.W, pady=2)
             self.calculate_warning_var.set("Please choose a date first.")
@@ -421,64 +439,56 @@ class MainWindow(ttk.Frame):
         window_width = self.parent.winfo_width()
         wrap_length = window_width * 0.45
         #  Statistics Amt options Widgets
-        self.sa_options_frame = ttk.Frame()
+        self.sa_options_frame = ttk.Frame(self)
         self.number_beds_var = tk.StringVar()
-        self.number_beds_lbl = ttk.Label(self.sa_options_frame, wraplength=wrap_length, text=beds, justify=tk.RIGHT)
+        self.number_beds_lbl = ttk.Label(self.sa_options_frame, style="Options.TLabel", wraplength=wrap_length, text=beds, justify=tk.RIGHT)
         self.number_beds_entry = ttk.Entry(self.sa_options_frame, width=5, textvariable=self.number_beds_var)
-        self.closed_lbl = ttk.Label(self.sa_options_frame, wraplength=wrap_length, text=closed, justify=tk.RIGHT)
-        self.closed_lbl2 = ttk.Label(self.sa_options_frame, text="dieses Berichtsmonats")
+        self.closed_lbl = ttk.Label(self.sa_options_frame, style="Options.TLabel", wraplength=wrap_length, text=closed, justify=tk.RIGHT)
+        self.closed_lbl2 = ttk.Label(self.sa_options_frame, style="Options.TLabel", text="dieses Berichtsmonats")
         self.closed_combo = ttk.Combobox(self.sa_options_frame, values=list(combobox_dicts.days_in_month.keys()), width=2)
-        self.reopen_lbl = ttk.Label(self.sa_options_frame, wraplength=wrap_length, text=opened, justify=tk.RIGHT)
+        self.reopen_lbl = ttk.Label(self.sa_options_frame, style="Options.TLabel", wraplength=wrap_length, text=opened, justify=tk.RIGHT)
         self.reopen_frame = ttk.Frame(self.sa_options_frame)
         self.reopen_entry = ttk.Entry(self.sa_options_frame, width=10)
         self.reopen_combo_d = ttk.Combobox(self.sa_options_frame, values=list(combobox_dicts.days_in_month.keys()), width=2)
         self.reopen_combo_m = ttk.Combobox(self.sa_options_frame, values=list(combobox_dicts.month_num.keys()), width=2)
         self.reopen_combo_y = ttk.Combobox(self.sa_options_frame, values=sorted(list(combobox_dicts.options_years.keys())), width=4)
-        self.forced_closed_lbl = ttk.Label(self.sa_options_frame, wraplength=wrap_length, text=forced_close, justify=tk.RIGHT)
+        self.forced_closed_lbl = ttk.Label(self.sa_options_frame, style="Options.TLabel", wraplength=wrap_length, text=forced_close, justify=tk.RIGHT)
         self.forced_closed_combo = ttk.Combobox(self.sa_options_frame, values=list(combobox_dicts.days_in_month.keys()), width=2)
-        self.forced_closed_lbl2 = ttk.Label(self.sa_options_frame, text="dieses Berichtsmonats")
+        self.forced_closed_lbl2 = ttk.Label(self.sa_options_frame, style="Options.TLabel", text="dieses Berichtsmonats")
         self.sa_options_warning_var = tk.StringVar()
         self.sa_options_warning_lbl = ttk.Label(self.sa_options_frame, style="Warning.TLabel", textvariable=self.sa_options_warning_var)
         self.send_to_sa = ttk.Button(self.sa_options_frame, text="SEND",
                                      command=lambda: self.check_sa_credential("send stats", self.sa_property))
-        self.options_separator = ttk.Separator(self.sa_options_frame, orient=tk.HORIZONTAL)
 
         #  Pack Statistcs Amt options widgets
         self.sa_options_frame.pack(fill=tk.X)
-        self.number_beds_lbl.grid(row=0, column=0, padx=(20, 10), sticky=tk.E)
-        self.number_beds_entry.grid(row=0, column=1, columnspan=2, sticky=tk.W)
+        self.number_beds_lbl.grid(row=0, column=0, padx=(20, 10), pady=2, sticky=tk.E)
+        self.number_beds_entry.grid(row=0, column=1, columnspan=2, pady=2, sticky=tk.W)
         self.number_beds_entry.focus()
-        self.closed_lbl.grid(row=1, column=0, padx=(20, 10), sticky=tk.E)
-        self.closed_combo.grid(row=1, column=1, sticky=tk.W)
-        self.closed_lbl2.grid(row=1, column=2, columnspan=3, padx=(0, 20), sticky=tk.W)
-        self.reopen_lbl.grid(row=2, column=0, padx=(20, 10), sticky=tk.E)
-        # self.reopen_entry.grid(row=2, column=1, columnspan=2, sticky=tk.W)
-        # self.reopen_frame.grid(row=2, column=1, columnspan=2)
-        # self.reopen_combo_d.pack(side=tk.LEFT, padx=(0, 5))
-        # self.reopen_combo_m.pack(side=tk.LEFT, padx=(0, 5))
-        # self.reopen_combo_y.pack(side=tk.LEFT, padx=(0, 40))
-        self.reopen_combo_d.grid(row=2, column=1, padx=2, sticky=tk.W)
-        self.reopen_combo_m.grid(row=2, column=2, padx=2, sticky=tk.W)
-        self.reopen_combo_y.grid(row=2, column=3, padx=2, sticky=tk.W)
-        self.forced_closed_lbl.grid(row=3, column=0, padx=(20, 10), sticky=tk.E)
-        self.forced_closed_combo.grid(row=3, column=1, sticky=tk.W)
-        self.forced_closed_lbl2.grid(row=3, column=2, columnspan=3, padx=(0, 20), sticky=tk.W)
-        self.send_to_sa.grid(row=4, column=4, columnspan=4, padx=(0, 20), sticky=tk.W, pady=(0, 10))
-        self.sa_options_warning_lbl.grid(row=4, column=0, columnspan=2, sticky=tk.E)
-        self.options_separator.grid(row=5, column=0, columnspan=5, padx=20, sticky=tk.W+tk.E)
+        self.closed_lbl.grid(row=1, column=0, padx=(20, 10), pady=(0, 2), sticky=tk.E)
+        self.closed_combo.grid(row=1, column=1, sticky=tk.W, pady=(0, 2))
+        self.closed_lbl2.grid(row=1, column=2, columnspan=3, padx=(0, 20), pady=(0, 2), sticky=tk.W)
+        self.reopen_lbl.grid(row=2, column=0, padx=(20, 10), pady=(0, 2), sticky=tk.E)
+        self.reopen_combo_d.grid(row=2, column=1, padx=2, pady=(0, 2), sticky=tk.W)
+        self.reopen_combo_m.grid(row=2, column=2, padx=2, pady=(0, 2), sticky=tk.W)
+        self.reopen_combo_y.grid(row=2, column=3, padx=2, pady=(0, 2), sticky=tk.W)
+        self.forced_closed_lbl.grid(row=3, column=0, padx=(20, 10), pady=(0, 2), sticky=tk.E)
+        self.forced_closed_combo.grid(row=3, column=1, sticky=tk.W, pady=(0, 2))
+        self.forced_closed_lbl2.grid(row=3, column=2, columnspan=3, padx=(0, 20), pady=(0, 2), sticky=tk.W)
+        self.send_to_sa.grid(row=4, column=4, columnspan=4, padx=(0, 20), pady=(0, 2), sticky=tk.W)
+        self.sa_options_warning_lbl.grid(row=4, column=0, columnspan=4, sticky=tk.E, padx=10, pady=(0, 2))
         if self.sa_login_details.get(self.sa_property, {}).get("beds", 0) > 0:
             self.number_beds_var.set(self.sa_login_details[self.sa_property]["beds"])
         else:
             self.number_beds_var.set("0")
 
     def send_statistics(self, status, already_sent_continue=False):
+        self.sa_options_warning_var.set("")
         try:
             self.send_sa_progress_var.set("")
-            self.send_sa_yes_btn.grid_forget()
-            self.send_sa_no_btn.grid_forget()
+            self.send_sa_progress_frame.forget()
         except:
             pass
-        self.send_to_sa.configure(state=tk.DISABLED)
         if status == "good":
             self.beds = int(self.number_beds_entry.get().replace(",", "").replace(".", ""))
             sa_options_dict = {
@@ -505,23 +515,27 @@ class MainWindow(ttk.Frame):
 
                         window_width = self.parent.winfo_width()
                         wrap_length = window_width - 40
-                        self.send_sa_progress_frame = ttk.Frame(self.sa_options_frame)
-                        self.send_sa_progress_bar = ttk.Progressbar(self.sa_options_frame, orient="horizontal",
+                        self.send_sa_progress_frame = ttk.Frame(self)
+                        self.options_separator = ttk.Separator(self.send_sa_progress_frame, orient=tk.HORIZONTAL)
+                        self.send_sa_progress_bar = ttk.Progressbar(self.send_sa_progress_frame, orient="horizontal",
                                                                     mode="determinate")
                         self.send_sa_progress_var = tk.StringVar()
-                        self.send_sa_progress_lbl = ttk.Label(self.sa_options_frame, wraplength=wrap_length,
+                        self.send_sa_progress_lbl = ttk.Label(self.send_sa_progress_frame, style="Options.TLabel", wraplength=wrap_length,
                                                               textvariable=self.send_sa_progress_var)
-                        self.send_sa_yes_btn = ttk.Button(self.sa_options_frame, text="Yes",
+                        self.send_sa_yes_btn = ttk.Button(self.send_sa_progress_frame, text="Yes",
                                                           command=lambda: self.send_statistics("good", True))
-                        self.send_sa_no_btn = ttk.Button(self.sa_options_frame, text="No",
+                        self.send_sa_no_btn = ttk.Button(self.send_sa_progress_frame, text="No",
                                                          command=lambda: self.send_sa_progress_var.set("Program stopped."))
-                        self.send_sa_separator = ttk.Separator(self.sa_options_frame, orient="horizontal")
+                        self.send_sa_separator = ttk.Separator(self.send_sa_progress_frame, orient="horizontal")
 
-                        self.send_sa_progress_bar.grid(row=6, column=0, columnspan=5, sticky=tk.W+tk.E, padx=20, pady=2)
-                        self.send_sa_progress_lbl.grid(row=7, column=0, columnspan=5, sticky=tk.W, padx=20, pady=2)
-                        self.send_sa_separator.grid(row=9, column=0, columnspan=5, sticky=tk.W+tk.E, padx=20, pady=2)
+                        self.send_sa_progress_frame.pack(fill=tk.X)
+                        self.options_separator.pack(fill=tk.X, padx=20, pady=(0, 2))
+                        self.send_sa_progress_bar.pack(fill=tk.X, padx=20, pady=(0, 2))
+                        self.send_sa_progress_lbl.pack(fill=tk.X, padx=20, pady=(0, 2))
+                        self.send_sa_separator.pack(fill=tk.X, padx=20)
                 elif int(self.beds) == 0:
-                    self.sa_options_warning_var.set("Number of beds must be more than 0!")
+                    self.send_to_sa.configure(state=tk.ACTIVE)
+                    self.sa_options_warning_var.set("Number of beds must be more than zero!")
             except TypeError and ValueError:
                 self.sa_options_warning_var.set("Number of beds must be an integer")
                 self.send_to_sa.configure(state=tk.ACTIVE)
@@ -532,6 +546,8 @@ class MainWindow(ttk.Frame):
             self.sa_user_id_var.set("")
             self.sa_user_id_entry.focus()
             self.sa_password_var.set("")
+            self.sa_change_details_btn.grid_forget()
+            self.sa_save_login_btn.grid(row=3, column=1, sticky=tk.E, padx=20, pady=2)
             self.sa_options_frame.forget()
 
     def load_bar(self):
@@ -607,8 +623,9 @@ class MainWindow(ttk.Frame):
             if message == "already sent":
                 self.send_sa_progress_var.set("You have already sent statistics for this month, would you like to send "
                                               "them again?")
-                self.send_sa_yes_btn.grid(row=8, column=0, sticky=tk.W, padx=20, pady=2)
-                self.send_sa_no_btn.grid(row=8, column=0, padx=20, pady=2)
+                self.send_sa_progress_bar.forget()
+                self.send_sa_yes_btn.pack(side=tk.LEFT, padx=(20, 10))
+                self.send_sa_no_btn.pack(side=tk.LEFT)
             elif isinstance(message, int):
                 self.send_sa_progress_bar.step(message)
                 self.parent.after(100, self.process_sa_send_queue)

@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup
 
 def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
     driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
-    # driver = webdriver.Firefox()
     driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
     driver.find_element_by_link_text(login_details[ma_property]["bundesland"]).click()
     driver.set_window_size(1920, 1080)
@@ -49,9 +48,8 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
         open_on = ""
     else:
         open_on = options_details["open on"]
-    # driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
-    driver = webdriver.Firefox()
-    # driver.maximize_window()
+    driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
+    driver.set_window_size(1920, 1080)
     progress_queue.put(10)
     progress_queue.put("Openings virtual browser...")
 
