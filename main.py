@@ -484,7 +484,6 @@ class MainWindow(ttk.Frame):
                         send_stats_thread.daemon = True
                         send_stats_thread.start()
                         self.parent.after(100, self.process_sa_send_queue)
-                        send_stats_thread.join()
             except TypeError and ValueError:
                 self.sa_options_warning_var.set("Number of beds must be an integer")
                 self.send_to_sa.configure(state=tk.ACTIVE)
@@ -566,10 +565,11 @@ class MainWindow(ttk.Frame):
 
     def process_sa_send_queue(self):
         try:
-            message = self.sa_send_queue.get()
+            message = self.sa_send_queue.get(0)
             self.sa_options_warning_var.set(message)
         except queue.Empty:
             self.parent.after(100, self.process_sa_send_queue)
+
 
 def main():
     root = tk.Tk()

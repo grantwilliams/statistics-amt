@@ -118,8 +118,5 @@ def calculate(month, year, filename, progress_queue):
                     pass  # Empty dictionary entry for separator between country groups
             progress_queue.put(4)
             statistics_csv_write.writerow(['Total', total_guests, total_overnights])
-        with open("Statistics_Saved_Files/Statistics-{}-{}.json".format(month, year), 'w',
-                  encoding='utf-8') as write_file:
-            json.dump(statistics, indent=4, fp=write_file)
             progress_queue.put("Finished!")
             progress_queue.put(statistics)
