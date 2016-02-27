@@ -24,7 +24,7 @@ bundeslaende = (
 bundeslaende = OrderedDict(bundeslaende)
 
 months = (
-    ("--Month--", ""),
+    ("-Month-", ""),
     ("Januar", "Januar"),
     ("Februar", "Februar"),
     ("März", "März"),
@@ -96,10 +96,11 @@ month_num = OrderedDict(month_num)
 
 channel_managers = {
     "--Select Channel Manager--": "",
-    "MyAllocator": "MyAllocator"
+    "MyAllocator": "MyAllocator",
+    "Switchboard": "Switchboard"
 }
 
-years = {"--Year--": ""}
+years = {"-Year-": ""}
 this_year = datetime.now().year
 for year in range(2014, this_year+1):
     years[str(year)] = str(year)

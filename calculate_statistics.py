@@ -65,10 +65,10 @@ channel_managers = {
     "Switchboard": {
         "arrival date": 2,
         "nights": 1,
-        "canceled": 6,
+        "canceled": 9,
         "nationality": 13,
         "guests": 9,
-        "date format": "%Y-%B"
+        "date format": "%Y-%m-%d"
     }
 }
 
@@ -76,7 +76,6 @@ channel_managers = {
 def calculate(month, year, filename, progress_queue, channel):
     statistics = copy.deepcopy(statistics_results)
     csv_column = copy.deepcopy(channel_managers[channel])
-    print(csv_column)
 
     if sys.platform == "win32":
         locale.setlocale(locale.LC_TIME, "deu_deu")
@@ -92,7 +91,6 @@ def calculate(month, year, filename, progress_queue, channel):
         errors = [0, 0]  # index 0 date errors, index 1 int value errors
         for row in bookings_csv_read:
             if errors[0] <= 20 and errors[1] <= 20:
-                print(errors)
                 try:
                     row_date = datetime.strptime(row[csv_column["arrival date"]], csv_column["date format"])
                     if row_date.month == month_to_calculate.month and row_date.year == month_to_calculate.year:
@@ -156,6 +154,7 @@ def calculate(month, year, filename, progress_queue, channel):
                     pass  # Empty dictionary entry for separator between country groups
             progress_queue.put(4)
             statistics_csv_write.writerow(['Total', total_guests, total_overnights])
-            progress_queue.put("Finished!")
-            progress_queue.put(statistics)
-            return
+    progress_queue.put("Finished!")
+    progress_queue.put(statistics)
+    # os.remove(filename)  # TODO add this back
+    return

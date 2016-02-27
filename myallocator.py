@@ -54,6 +54,7 @@ def download_bookings_csv(login_details, url, download_queue):
     if os.path.isfile("bookings.csv"):
         download_queue.put(99)
         download_queue.put("Finished!")
+        download_queue.put("bookings.csv")
         return
     browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
     download_queue.put(20)
@@ -79,10 +80,12 @@ def download_bookings_csv(login_details, url, download_queue):
         response = browser.post(
             "https://inbox.myallocator.com/dispatch/csv_export/{}/bookings.csv".format(property_number[0]), csv_data)
         download_queue.put(19)
-        bookings = open('bookings.csv', 'wb')
+        file_name = "bookings.csv"
+        bookings = open(file_name, 'wb')
         bookings.write(response.content)
         bookings.close()
         download_queue.put("Finished!")
+        download_queue.put(file_name)
         return
     except Exception:
         download_queue.put(["exit", "Connection error, could not connect to internet"])

@@ -1,13 +1,22 @@
 from selenium import webdriver
 from selenium.common import exceptions
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 
 
 def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
     driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
+    # driver = webdriver.Firefox()
     driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
-    driver.find_element_by_link_text(login_details[ma_property]["bundesland"]).click()
+    try:
+        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
+            By.LINK_TEXT, login_details[ma_property]["bundesland"]))).click()
+    except exceptions.TimeoutException:
+        sa_cred_queue.put("sa page timeout {}".format(call_origin))
+        return
     driver.set_window_size(1920, 1080)
 
     user_id = driver.find_element_by_id("loginid")
@@ -17,7 +26,10 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
     password.submit()
 
     try:
-        driver.find_element_by_id("logoutButton")
+        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
+            By.ID, "logoutButton")))
+    except exceptions.TimeoutException:
+        sa_cred_queue.put("sa page timeout {}".format(call_origin))
     except exceptions.NoSuchElementException:
         sa_cred_queue.put("sa not ok {}".format(call_origin))
         return
