@@ -254,7 +254,7 @@ ISO3166 = {
     'ZW': 'ZIMBABWE'
     }
 
-statistics = (
+statistics_results = (
     ("GERMANY", [0, 0]),
     ("BELGIUM", [0, 0]),
     ("BULGARIA", [0, 0]),
@@ -311,7 +311,7 @@ statistics = (
     ("INFO NOT GIVEN", [0, 0])
 )
 
-statistics = OrderedDict(statistics)
+statistics_results = OrderedDict(statistics_results)
 
 south_america = ['ARGENTINA', 'BOLIVIA', 'CHILE', 'COLUMBIA', 'ECUADOR', 'FALKLAND ISLANDS', 'FRENCH GUIANA', 'GUYANA',
                  'PARAGUAY', 'PERU', 'URUGUAY', 'VENEZUELA']

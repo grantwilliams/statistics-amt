@@ -6,7 +6,7 @@ from datetime import datetime
 import locale
 import multiprocessing
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog
 from collections import OrderedDict
 import json
 import myallocator
@@ -34,6 +34,8 @@ class MainWindow(ttk.Frame):
             locale.setlocale(locale.LC_TIME, "de_DE")
             warning_fs = "-size 10"
             self.field_width = 30
+
+        self.myallocator_login = False
 
         self.parent = parent
         self.pack(fill=tk.BOTH, expand=True)
@@ -102,6 +104,7 @@ class MainWindow(ttk.Frame):
                                                 command=lambda: self.check_ma_credential("get properties"))
         self.ma_change_detials_btn = ttk.Button(self.ma_button_frame, text="Change login details",
                                                 command=self.ma_change_details)
+        self.upload_bookings_btn = ttk.Button(self.ma_button_frame, text="Upload Bookings", command=self.upload_bookings)
         self.ma_warning_var = tk.StringVar()
         self.ma_warning = ttk.Label(self.ma_form_frame, style="Warning.TLabel", textvariable=self.ma_warning_var)
 
@@ -125,7 +128,8 @@ class MainWindow(ttk.Frame):
             self.ma_get_properties_btn.pack(side=tk.RIGHT, pady=2)
             self.ma_password_entry.configure(state=tk.DISABLED)
         else:
-            self.ma_save_login_btn.pack(side=tk.RIGHT, padx=20, pady=2)
+            self.upload_bookings_btn.pack(side=tk.RIGHT, padx=(5, 20), pady=2)
+            self.ma_save_login_btn.pack(side=tk.RIGHT, pady=2)
 
     def ma_change_details(self):
         self.ma_password_entry.configure(state=tk.ACTIVE)
@@ -164,6 +168,7 @@ class MainWindow(ttk.Frame):
             self.ma_change_detials_btn.pack(side=tk.RIGHT, padx=(5, 20))
             self.ma_get_properties_btn.pack(side=tk.RIGHT, pady=2)
             self.ma_password_entry.configure(state=tk.DISABLED)
+            self.myallocator_login = True
             self.parent.update()
         elif status == "bad":
             self.ma_warning_var.set("Password incorrect, could not sign in.")
@@ -209,6 +214,30 @@ class MainWindow(ttk.Frame):
             self.ma_properties_combobox.current(0)
             self.ma_properties_serparator.pack(fill=tk.X, padx=20, pady=2)
 
+    def upload_bookings(self):
+        self.upload_bookings_frame = ttk.Frame(self)
+        self.upload_bookings_btn = ttk.Button(self.upload_bookings_frame, text="Browse...", command=self.browse_csv)
+        self.upload_bookings_var = tk.StringVar()
+        self.upload_bookings_lbl = ttk.Entry(self.upload_bookings_frame, width=self.field_width+5, textvariable=self.upload_bookings_var)
+        self.channel_lbl = ttk.Label(self.upload_bookings_frame, text="Channel Manager:")
+        self.channel_combobox = ttk.Combobox(self.upload_bookings_frame, values=sorted(list(combobox_dicts.channel_managers.keys())))
+        self.upload_bookings_separator = ttk.Separator(self, orient="horizontal")
+
+        self.upload_bookings_frame.pack(fill=tk.X)
+        self.upload_bookings_btn.grid(row=0, column=0, padx=20, pady=2, sticky=tk.E)
+        self.upload_bookings_lbl.grid(row=0, column=1, pady=2, padx=(0, 20), sticky=tk.W+tk.E)
+        self.channel_lbl.grid(row=1, column=0, padx=20, pady=2, sticky=tk.E)
+        self.channel_combobox.grid(row=1, column=1, pady=2, sticky=tk.W)
+        self.channel_combobox.current(0)
+        self.upload_bookings_separator.pack(fill=tk.X, padx=20)
+        self.update()
+
+    def browse_csv(self):
+        self.file_name = filedialog.askopenfilename(filetypes=(("CSV Files", "*.csv"),))
+        self.upload_bookings_var.set(self.file_name)
+        self.channel_manager = self.channel_combobox.get()
+        self.setup_sa()
+
     def download_bookings(self):
         property = self.ma_properties[self.ma_properties_combobox.get()][0]
         self.ma_properties_warn_var = tk.StringVar()
@@ -243,7 +272,10 @@ class MainWindow(ttk.Frame):
     def setup_sa(self):
         bullet = "\u2022"
         bundeslaende = combobox_dicts.bundeslaende
-        self.sa_property = self.ma_properties_combobox.get()
+        try:
+            self.sa_property = self.ma_properties_combobox.get()
+        except AttributeError:
+            self.sa_property = "Upload Bookings"
         #  Statistik Amt login widgets
         self.sa_title_separator = ttk.Separator(self, orient=tk.HORIZONTAL)
         self.sa_form_separator = ttk.Separator(self, orient=tk.HORIZONTAL)
@@ -338,7 +370,7 @@ class MainWindow(ttk.Frame):
                 self.parent.after(100, self.check_sa_cred_queue)
 
     def save_sa_login(self):
-        self.sa_property = self.ma_properties_combobox.get()
+        # self.sa_property = self.ma_properties_combobox.get()
         self.sa_user_id = self.sa_user_id_entry.get()
         self.sa_password = self.sa_password_entry.get()
         self.bundesland = combobox_dicts.bundeslaende[self.bundesland_combobox.get()][0]
@@ -391,6 +423,7 @@ class MainWindow(ttk.Frame):
         self.sa_save_login_btn.grid(row=3, column=1, sticky=tk.E, padx=20, pady=2)
 
     def calculate_statistics(self):
+        self.statistics_results = None
         today_date = datetime.strptime(str(datetime.now())[:7], "%Y-%m")
         month_chosen = self.month_combobox.get()
         year_chosen = self.year_combobox.get()
@@ -407,9 +440,10 @@ class MainWindow(ttk.Frame):
         try:
             if not self.sa_save_login_btn.winfo_ismapped():
                 if self.download_lbl_var.get() == "Finished!" and chosen_date_obj < today_date:
+                    self.calculate_btn.configure(state=tk.DISABLED)
                     calculate_thread = threading.Thread(
                         target=calculate_statistics.calculate, args=[month_chosen, year_chosen, filename,
-                                                                     self.calculate_statistics_queue])
+                                                                     self.calculate_statistics_queue, "Switchboard"])
                     calculate_thread.daemon = True
                     calculate_thread.start()
                     self.calculate_progress_bar = ttk.Progressbar(self.calculate_frame, orient="horizontal",
@@ -435,7 +469,6 @@ class MainWindow(ttk.Frame):
             self.calculate_warning_var.set("Please choose a date first.")
 
     def setup_sa_options(self):
-        self.statistics_results = None
         window_width = self.parent.winfo_width()
         wrap_length = window_width * 0.45
         #  Statistics Amt options Widgets
@@ -549,6 +582,10 @@ class MainWindow(ttk.Frame):
             self.sa_change_details_btn.grid_forget()
             self.sa_save_login_btn.grid(row=3, column=1, sticky=tk.E, padx=20, pady=2)
             self.sa_options_frame.forget()
+            self.calculate_btn.configure(state=tk.ACTIVE)
+            self.calculate_warning_var.set("")
+            self.calculate_progress_lbl.grid_forget()
+            self.calculate_progress_bar.grid_forget()
 
     def load_bar(self):
         try:
@@ -631,6 +668,11 @@ class MainWindow(ttk.Frame):
                 self.parent.after(100, self.process_sa_send_queue)
             elif message == "Finished":
                 self.send_sa_progress_var.set("Statistics successfully sent!")
+            elif message == "no date":
+                self.send_sa_progress_bar.forget()
+                self.send_sa_progress_var.set("Sorry, the Statistics Amt website is not allowing statistics to be "
+                                              "submitted for the month you have chosen, please choose a different "
+                                              "month and try again.")
             else:
                 self.send_sa_progress_var.set(message)
                 self.parent.after(100, self.process_sa_send_queue)

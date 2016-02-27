@@ -1,6 +1,7 @@
 import os
 import sys
 import csv
+import copy
 import locale
 from datetime import datetime
 from country_dicts import *
@@ -51,8 +52,32 @@ def check_code(code):
         else:
             return ISO3166.get(code)
 
+#  csv column numbers for the different channel managers csv bookings export
+channel_managers = {
+    "MyAllocator": {
+        "arrival date": 6,
+        "nights": 8,
+        "canceled": 9,
+        "nationality": 13,
+        "guests": 15,
+        "date format": "%Y-%m-%d"
+    },
+    "Switchboard": {
+        "arrival date": 2,
+        "nights": 1,
+        "canceled": 6,
+        "nationality": 13,
+        "guests": 9,
+        "date format": "%Y-%B"
+    }
+}
 
-def calculate(month, year, filename, progress_queue):
+
+def calculate(month, year, filename, progress_queue, channel):
+    statistics = copy.deepcopy(statistics_results)
+    csv_column = copy.deepcopy(channel_managers[channel])
+    print(csv_column)
+
     if sys.platform == "win32":
         locale.setlocale(locale.LC_TIME, "deu_deu")
     else:
@@ -64,28 +89,42 @@ def calculate(month, year, filename, progress_queue):
         next(bookings_csv_read)
         progress_queue.put(10)
         queue_next = 20
+        errors = [0, 0]  # index 0 date errors, index 1 int value errors
         for row in bookings_csv_read:
-            row_date = datetime.strptime(row[6], "%Y-%m-%d")
-            if row_date.month == month_to_calculate.month and row_date.year == month_to_calculate.year:
-                if queue_next < 55:
-                    progress_queue.put(1)
-                    queue_next += 1
-                if row[9] == "No":
-                    if row[13].upper() in statistics:
-                        statistics[row[13].upper()][0] += int(row[15])
-                        statistics[row[13].upper()][1] += int(row[8])*int(row[15])
-                    elif row[13] == "":
-                        statistics["INFO NOT GIVEN"][0] += int(row[15])
-                        statistics["INFO NOT GIVEN"][1] += int(row[8])*int(row[15])
-                    elif check_other(row[13].upper()) in statistics:
-                        statistics[check_other(row[13].upper())][0] += int(row[15])
-                        statistics[check_other(row[13].upper())][1] += int(row[8])*int(row[15])
-                    elif check_code(row[13].upper()) in statistics:
-                        statistics[check_code(row[13].upper())][0] += int(row[15])
-                        statistics[check_code(row[13].upper())][1] += int(row[8])*int(row[15])
-                    elif row[13] not in statistics:
-                        statistics["INFO NOT GIVEN"][0] += int(row[15])
-                        statistics["INFO NOT GIVEN"][1] += int(row[8])*int(row[15])
+            if errors[0] <= 20 and errors[1] <= 20:
+                print(errors)
+                try:
+                    row_date = datetime.strptime(row[csv_column["arrival date"]], csv_column["date format"])
+                    if row_date.month == month_to_calculate.month and row_date.year == month_to_calculate.year:
+                        if queue_next < 55:
+                            progress_queue.put(1)
+                            queue_next += 1
+                        if row[csv_column["canceled"]] == "No":
+                            try:
+                                if row[csv_column["nationality"]].upper() in statistics:
+                                    statistics[row[csv_column["nationality"]].upper()][0] += int(row[csv_column["guests"]])
+                                    statistics[row[csv_column["nationality"]].upper()][1] += int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
+                                elif row[csv_column["nationality"]] == "":
+                                    statistics["INFO NOT GIVEN"][0] += int(row[csv_column["guests"]])
+                                    statistics["INFO NOT GIVEN"][1] += int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
+                                elif check_other(row[csv_column["nationality"]].upper()) in statistics:
+                                    statistics[check_other(row[csv_column["nationality"]].upper())][0] += int(row[csv_column["guests"]])
+                                    statistics[check_other(row[csv_column["nationality"]].upper())][1] += int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
+                                elif check_code(row[csv_column["nationality"]].upper()) in statistics:
+                                    statistics[check_code(row[csv_column["nationality"]].upper())][0] += int(row[csv_column["guests"]])
+                                    statistics[check_code(row[csv_column["nationality"]].upper())][1] += int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
+                                elif row[csv_column["nationality"]] not in statistics:
+                                    statistics["INFO NOT GIVEN"][0] += int(row[csv_column["guests"]])
+                                    statistics["INFO NOT GIVEN"][1] += int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
+                            except ValueError:
+                                pass#next(bookings_csv_read)  # skip if can't convert to int
+                                errors[1] += 1
+                except ValueError:
+                    pass#next(bookings_csv_read)  # skip if date doesn't match
+                    errors[0] += 1
+            else:
+                progress_queue.put("wrong channel")
+                return
         if queue_next != 55:
             progress_queue.put(55-queue_next)
         progress_queue.put(10)
@@ -119,3 +158,4 @@ def calculate(month, year, filename, progress_queue):
             statistics_csv_write.writerow(['Total', total_guests, total_overnights])
             progress_queue.put("Finished!")
             progress_queue.put(statistics)
+            return

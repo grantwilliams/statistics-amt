@@ -94,6 +94,11 @@ month_num = (
 )
 month_num = OrderedDict(month_num)
 
+channel_managers = {
+    "--Select Channel Manager--": "",
+    "MyAllocator": "MyAllocator"
+}
+
 years = {"--Year--": ""}
 this_year = datetime.now().year
 for year in range(2014, this_year+1):
@@ -103,5 +108,3 @@ options_years = {"": ""}
 this_year = datetime.now().year
 for year in range(2014, this_year+15):
     options_years[str(year)] = str(year)
-
-

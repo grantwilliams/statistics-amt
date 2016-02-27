@@ -20,8 +20,10 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
         driver.find_element_by_id("logoutButton")
     except exceptions.NoSuchElementException:
         sa_cred_queue.put("sa not ok {}".format(call_origin))
+        return
     except exceptions.ElementNotVisibleException:
         sa_cred_queue.put("sa not ok {}".format(call_origin))
+        return
     else:
         driver.find_element_by_id("menu300").click()
         driver.find_element_by_id("menu301").click()
@@ -48,8 +50,9 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
         open_on = ""
     else:
         open_on = options_details["open on"]
-    driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
-    driver.set_window_size(1920, 1080)
+    # driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
+    # driver.set_window_size(1920, 1080)
+    driver = webdriver.Firefox()
     progress_queue.put(10)
     progress_queue.put("Openings virtual browser...")
 
@@ -64,7 +67,12 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     progress_queue.put("Logging into Statistiks Amt site...")
     progress_queue.put(10)
 
-    driver.find_element_by_link_text(options_details["sub month"]).click()
+    try:
+        driver.find_element_by_link_text(options_details["sub month"]).click()
+    except exceptions.NoSuchElementException:
+        progress_queue.put("no date")
+        driver.quit()
+        return
 
     if len(BeautifulSoup(driver.page_source, "html.parser").find_all("div", {"id": "app_message"})) > 0:
         if not already_sent_continue:
