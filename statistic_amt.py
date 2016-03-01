@@ -26,10 +26,7 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
     password.submit()
 
     try:
-        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
-            By.ID, "logoutButton")))
-    except exceptions.TimeoutException:
-        sa_cred_queue.put("sa page timeout {}".format(call_origin))
+        driver.find_element_by_id("logoutButton")
     except exceptions.NoSuchElementException:
         sa_cred_queue.put("sa not ok {}".format(call_origin))
         return
@@ -144,5 +141,5 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
 
     statistics_generator.close()
     progress_queue.put(5)
-    progress_queue.put("Finished")
+    progress_queue.put(["Finished", options_details["sub month"]])
     # driver.quit()

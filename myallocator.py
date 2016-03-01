@@ -58,34 +58,34 @@ def download_bookings_csv(login_details, url, download_queue):
         return
     browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
     download_queue.put(20)
-    try:
-        login_page = browser.get('https://inbox.myallocator.com/en/login')
 
-        login_form = login_page.soup.select('.login_box')[0].select('form')[0]
-        download_queue.put(20)
-        login_form.select('#Username')[0]['value'] = login_details["ma_username"]
-        login_form.select('#Password')[0]['value'] = login_details["ma_password"]
-        download_queue.put(20)
-        browser.submit(login_form, login_page.url)
-        download_queue.put(20)
-        property_number = re.findall(r'\d+', url)
-        browser.get('https://inbox.myallocator.com'.format(url))
+    login_page = browser.get('https://inbox.myallocator.com/en/login')
 
-        csv_data = {
-            'criteria': 'start_days',
-            'timespan': '',
-            'filter': ''
-        }
+    login_form = login_page.soup.select('.login_box')[0].select('form')[0]
+    download_queue.put(20)
+    login_form.select('#Username')[0]['value'] = login_details["ma_username"]
+    login_form.select('#Password')[0]['value'] = login_details["ma_password"]
+    download_queue.put(20)
+    browser.submit(login_form, login_page.url)
+    download_queue.put(20)
+    property_number = re.findall(r'\d+', url)
+    browser.get('https://inbox.myallocator.com'.format(url))
 
-        response = browser.post(
-            "https://inbox.myallocator.com/dispatch/csv_export/{}/bookings.csv".format(property_number[0]), csv_data)
-        download_queue.put(19)
-        file_name = "bookings.csv"
-        bookings = open(file_name, 'wb')
-        bookings.write(response.content)
-        bookings.close()
-        download_queue.put("Finished!")
-        download_queue.put(file_name)
-        return
-    except Exception:
-        download_queue.put(["exit", "Connection error, could not connect to internet"])
+    csv_data = {
+        'criteria': 'start_days',
+        'timespan': '',
+        'filter': ''
+    }
+
+    response = browser.post(
+        "https://inbox.myallocator.com/dispatch/csv_export/{}/bookings.csv".format(property_number[0]), csv_data)
+    download_queue.put(19)
+    file_name = "bookings.csv"
+    bookings = open(file_name, 'w', newline='', encoding='utf-8')
+    bookings.write(response.content.decode('utf8'))
+    bookings.close()
+    download_queue.put("Finished!")
+    download_queue.put(file_name)
+    return
+    # except Exception:
+    #     download_queue.put(["exit", "Connection error, could not connect to internet"])

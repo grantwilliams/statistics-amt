@@ -58,6 +58,7 @@ channel_managers = {
         "arrival date": 6,
         "nights": 8,
         "canceled": 9,
+        "canceled answer": "Yes",
         "nationality": 13,
         "guests": 15,
         "date format": "%Y-%m-%d"
@@ -91,13 +92,16 @@ def calculate(month, year, filename, progress_queue, channel):
         errors = [0, 0]  # index 0 date errors, index 1 int value errors
         for row in bookings_csv_read:
             if errors[0] <= 20 and errors[1] <= 20:
+                booking_canceled = False
+                if row[csv_column["canceled"]] == csv_column["canceled answer"]:
+                    booking_canceled = True
                 try:
                     row_date = datetime.strptime(row[csv_column["arrival date"]], csv_column["date format"])
                     if row_date.month == month_to_calculate.month and row_date.year == month_to_calculate.year:
                         if queue_next < 55:
                             progress_queue.put(1)
                             queue_next += 1
-                        if row[csv_column["canceled"]] == "No":
+                        if not booking_canceled:
                             try:
                                 if row[csv_column["nationality"]].upper() in statistics:
                                     statistics[row[csv_column["nationality"]].upper()][0] += int(row[csv_column["guests"]])
@@ -120,6 +124,9 @@ def calculate(month, year, filename, progress_queue, channel):
                 except ValueError:
                     pass#next(bookings_csv_read)  # skip if date doesn't match
                     errors[0] += 1
+                except IndexError:
+                    progress_queue.put("wrong csv")
+                    return
             else:
                 progress_queue.put("wrong channel")
                 return
@@ -128,8 +135,7 @@ def calculate(month, year, filename, progress_queue, channel):
         progress_queue.put(10)
         if not os.path.isdir("Statistics_Saved_Files"):
             os.makedirs("Statistics_Saved_Files")
-        with open("Statistics_Saved_Files/Statistics-{}-{}.csv".format(month, year), 'w',
-                  encoding='utf-8') as write_file:
+        with open("Statistics_Saved_Files/Statistics-{}-{}.csv".format(month, year), 'w', newline='', encoding='utf-8') as write_file:
             statistics_csv_write = csv.writer(write_file)
 
             statistics_csv_write.writerow(['Country', 'Guests', 'Nights'])

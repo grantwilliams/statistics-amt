@@ -30,10 +30,12 @@ class MainWindow(ttk.Frame):
         if sys.platform == "win32":
             locale.setlocale(locale.LC_TIME, "deu_deu")
             warning_fs = "-size 8"
+            upload_button_font = "-size 14"
             self.field_width = 40
         else:
             locale.setlocale(locale.LC_TIME, "de_DE")
             warning_fs = "-size 10"
+            upload_button_font = "-size 16"
             self.field_width = 30
 
         self.myallocator_login = False
@@ -59,6 +61,15 @@ class MainWindow(ttk.Frame):
             with open("data_files/.sa_login.json") as sa_json:
                 self.sa_login_details = json.load(sa_json)
 
+        double_ups = 0
+        for item in self.sa_login_details.keys():
+            if self.sa_login_details.get(item, {}).get("sa_user_id", None) in self.sa_login_details.get(
+                    "Upload Bookings", {}).get("sa_user_id", []):
+                double_ups += 1
+
+        self.sa_logins_used = len(self.sa_login_details) + len(
+            self.sa_login_details.get("Upload Bookings", {}).get("sa_user_id", [])) - double_ups
+
         self.theme = ttk.Style()
         self.theme.theme_create("dark_theme", parent="alt", settings={
             "TFrame": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}},
@@ -77,15 +88,51 @@ class MainWindow(ttk.Frame):
         self.warning_lbl_style = ttk.Style()
         self.warning_lbl_style.configure('Warning.TLabel', font=warning_fs, foreground='red')
         self.options_lbl_style = ttk.Style()
-        self.options_lbl_style.configure('Options.TLabel', font="-size 10")
+        self.options_lbl_style.configure('Options.TLabel')
+        self.upload_style_buttons = ttk.Style()
+        self.upload_style_buttons.configure("Upload.TButton", font=upload_button_font, padding=10)
 
         self.title_frame = ttk.Frame(self)
         self.title_frame.pack(fill=tk.X)
         self.title = ttk.Label(self.title_frame, text="Statistics")
         self.title.pack(side=tk.TOP, pady=10)
-        self.setup_ma()
+        self.upload_style()
+
+    def upload_style(self, origin="init"):
+        self.upload_style_frame = ttk.Frame(self)
+        self.upload_style_title_frame = ttk.Frame(self)
+        self.upload_style_title = ttk.Label(self.upload_style_title_frame, text="Upload with...", style="title.TLabel")
+        self.upload_style_separator = ttk.Separator(self, orient="horizontal")
+        self.upload_myallocator_btn = ttk.Button(self.upload_style_frame,  style="Upload.TButton",text="MyAllocator", command=self.setup_ma)
+        self.upload_myallocator_tooltip = TT.ToolTip(self.upload_myallocator_btn, "Provide MyAllocator login details "
+                                                                                  "to be able to\ndownload all "
+                                                                                  "bookings automacially.")
+        self.upload_file_btn = ttk.Button(self.upload_style_frame, style="Upload.TButton", text="From file", command=self.upload_bookings)
+        self.upload_file_tooltip = TT.ToolTip(self.upload_file_btn, "Upload a 'csv' file of your bookings from your "
+                                                                    "computer")
+        if origin == "myallocator":
+            self.ma_title_frame.forget()
+            self.ma_title_separator.forget()
+            self.ma_form_frame.forget()
+            self.ma_form_separator.forget()
+        if origin == "upload bookings":
+            self.browse_file_title_frame.forget()
+            self.browse_files_title_separator.forget()
+            self.browse_files_frame.forget()
+            self.browse_files_separator.forget()
+
+        self.upload_style_title_frame.pack(fill=tk.X)
+        self.upload_style_title.pack(side=tk.LEFT, padx=20)
+        self.upload_style_separator.pack(fill=tk.X, padx=20)
+        self.upload_style_frame.pack(fill=tk.X)
+        self.upload_myallocator_btn.pack(side=tk.LEFT, padx=(100, 10), pady=20)
+        self.upload_file_btn.pack(side=tk.LEFT, padx=(0, 100))
 
     def setup_ma(self):
+        self.upload_style_title_frame.forget()
+        self.upload_style_frame.forget()
+        self.upload_style_separator.forget()
+        self.parent.update()
         bullet = "\u2022"
         #  MyAllocator login widgets
         self.ma_title_separator = ttk.Separator(self, orient=tk.HORIZONTAL)
@@ -103,13 +150,16 @@ class MainWindow(ttk.Frame):
         self.ma_button_frame = ttk.Frame(self)
         self.ma_save_login_btn = ttk.Button(self.ma_button_frame, text="Save login details",
                                             command=self.save_ma_login)
+        self.ma_save_tooltip = TT.ToolTip(self.ma_save_login_btn, "Save your MyAllocator login details for future use.")
         self.ma_get_properties_btn = ttk.Button(self.ma_button_frame, text="Get Properties",
                                                 command=lambda: self.check_ma_credential("get properties"))
+        self.ma_properties_tooltip = TT.ToolTip(self.ma_get_properties_btn, "Retrieve your properties from your "
+                                                                            "MyAllocator account.")
         self.ma_change_detials_btn = ttk.Button(self.ma_button_frame, text="Change login details",
                                                 command=self.ma_change_details)
-        self.upload_bookings_btn = ttk.Button(self.ma_button_frame, text="Upload Bookings", command=self.upload_bookings)
-        self.upload_tooltop = TT.ToolTip(self.upload_bookings_btn, "Upload a 'csv' file of all your bookings, if you "
-                                                                   "don't have a MyAllocator account.")
+        self.ma_change_details_tooltip = TT.ToolTip(self.ma_change_detials_btn, "Change your saved MyAllocator login "
+                                                                                "details.")
+        self.ma_back_btn = ttk.Button(self.ma_button_frame, text="Back", command=lambda: self.upload_style("myallocator"))
         self.ma_warning_var = tk.StringVar()
         self.ma_warning = ttk.Label(self.ma_form_frame, style="Warning.TLabel", textvariable=self.ma_warning_var)
 
@@ -133,10 +183,11 @@ class MainWindow(ttk.Frame):
             self.ma_get_properties_btn.pack(side=tk.RIGHT, pady=2)
             self.ma_password_entry.configure(state=tk.DISABLED)
         else:
-            self.upload_bookings_btn.pack(side=tk.RIGHT, padx=(5, 20), pady=2)
+            self.ma_back_btn.pack(side=tk.RIGHT, padx=(5, 20), pady=2)
             self.ma_save_login_btn.pack(side=tk.RIGHT, pady=2)
 
     def ma_change_details(self):
+        self.parent.update()
         self.ma_password_entry.configure(state=tk.ACTIVE)
         self.ma_password_var.set("")
         self.ma_password_entry.focus()
@@ -146,6 +197,7 @@ class MainWindow(ttk.Frame):
         self.parent.update()
 
     def check_ma_credential(self, call_origin):
+        self.parent.update()
         self.warning_lbl_style.configure('Warning.TLabel', foreground='green')
         self.ma_warning_var.set("Trying to log into MyAllocator...")
         ma_cred_thread = threading.Thread(
@@ -155,9 +207,9 @@ class MainWindow(ttk.Frame):
         self.parent.after(100, self.check_ma_cred_queue)
 
     def save_ma_login(self):
+        self.parent.update()
         self.ma_username = self.ma_username_entry.get()
         self.ma_password = self.ma_password_entry.get()
-        self.upload_bookings_btn.configure(state=tk.DISABLED)
 
         if self.ma_username != '' and self.ma_password != '':
             self.ma_login_details["ma_username"] = self.ma_username
@@ -168,14 +220,14 @@ class MainWindow(ttk.Frame):
         elif self.ma_username == '' or self.ma_password == '':
             self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
             self.ma_warning_var.set("One or more fields are empty!")
-            self.upload_bookings_btn.configure(state=tk.ACTIVE)
 
     def ma_credential_ok(self, status):
+        self.parent.update()
         if status == "good":
             self.warning_lbl_style.configure('Warning.TLabel', foreground='green')
             self.ma_warning_var.set("Login successful!")
             self.ma_save_login_btn.forget()
-            self.upload_bookings_btn.forget()
+            self.ma_back_btn.forget()
             self.ma_change_detials_btn.pack(side=tk.RIGHT, padx=(5, 20))
             self.ma_get_properties_btn.pack(side=tk.RIGHT, pady=2)
             self.ma_password_entry.configure(state=tk.DISABLED)
@@ -186,12 +238,12 @@ class MainWindow(ttk.Frame):
             self.ma_warning_var.set("Password incorrect, could not sign in.")
             self.ma_password_var.set("")
             self.ma_password_entry.focus()
-            self.upload_bookings_btn.configure(state=tk.ACTIVE)
             self.ma_login_details["ma_password"] = ""
             with open("data_Files/.ma_login.json", 'w', encoding='utf-8') as outfile:
                 json.dump(self.ma_login_details, indent=4, sort_keys=True, fp=outfile)
 
     def get_properties(self, status):
+        self.parent.update()
         self.ma_get_properties_btn.configure(state=tk.DISABLED)
         if status == "good":
             self.warning_lbl_style.configure('Warning.TLabel', foreground='green')
@@ -214,6 +266,7 @@ class MainWindow(ttk.Frame):
             self.ma_save_login_btn.pack(side=tk.RIGHT, padx=20, pady=2)
 
     def load_properties(self):
+        self.parent.update()
         self.ma_properties = dict()
         with open("data_files/properties.json") as propfile:
             self.ma_properties = json.load(propfile)
@@ -233,26 +286,37 @@ class MainWindow(ttk.Frame):
             self.ma_properties_serparator.pack(fill=tk.X, padx=20, pady=2)
 
     def upload_bookings(self):
+        self.upload_style_title_frame.forget()
+        self.upload_style_frame.forget()
+        self.upload_style_separator.forget()
+        self.parent.update()
+        self.browse_file_title_frame = ttk.Frame(self)
+        self.browse_files_title_lbl = ttk.Label(self.browse_file_title_frame, text="Bookings Upload", style="title.TLabel")
+        self.browse_files_title_separator = ttk.Separator(self, orient="horizontal")
         self.browse_files_frame = ttk.Frame(self)
         self.browse_files_btn = ttk.Button(self.browse_files_frame, text="Browse...", command=self.browse_csv)
+        self.browse_files_tooptip = TT.ToolTip(self.browse_files_btn, "Upload a 'csv' file of all your bookings "
+                                                                      "(Can be downloaded from the channel manager you"
+                                                                      " use.")
         self.browse_files_var = tk.StringVar()
         self.browse_files_lbl = ttk.Entry(self.browse_files_frame, width=self.field_width+5, textvariable=self.browse_files_var)
         self.channel_lbl = ttk.Label(self.browse_files_frame, text="Channel Manager:")
         self.channel_combobox = ttk.Combobox(self.browse_files_frame, width=26, values=sorted(list(combobox_dicts.channel_managers.keys())))
         self.channel_combobox.bind("<<ComboboxSelected>>", self.channel_selected)
         self.browse_files_separator = ttk.Separator(self, orient="horizontal")
+        self.browse_back_btn = ttk.Button(self.browse_files_frame, text="Back", command=lambda: self.upload_style("upload bookings"))
 
-        self.ma_title_frame.forget()
-        self.ma_form_frame.forget()
-        self.ma_button_frame.forget()
-        self.ma_form_separator.forget()
+        self.browse_file_title_frame.pack(fill=tk.X)
+        self.browse_files_title_lbl.pack(side=tk.LEFT, padx=20)
+        self.browse_files_title_separator.pack(fill=tk.X, padx=20)
         self.browse_files_frame.pack(fill=tk.X)
         self.browse_files_btn.grid(row=0, column=0, padx=20, pady=2, sticky=tk.E)
         self.browse_files_lbl.grid(row=0, column=1, pady=2, padx=(0, 20), sticky=tk.W+tk.E)
         self.channel_lbl.grid(row=1, column=0, padx=20, pady=2, sticky=tk.E)
         self.channel_combobox.grid(row=1, column=1, pady=2, sticky=tk.W)
         self.channel_combobox.current(0)
-        self.browse_files_separator.pack(fill=tk.X, padx=20)
+        self.browse_back_btn.grid(row=2, column=1, padx=20, pady=2, sticky=tk.E)
+        self.browse_files_separator.pack(fill=tk.X, padx=20, pady=2)
         self.update()
 
     def browse_csv(self):
@@ -272,6 +336,7 @@ class MainWindow(ttk.Frame):
         self.setup_sa()
 
     def download_bookings(self):
+        self.parent.update()
         self.ma_warning_var.set("")
         property = self.ma_properties[self.ma_properties_combobox.get()][0]
         self.ma_properties_warn_var = tk.StringVar()
@@ -305,6 +370,10 @@ class MainWindow(ttk.Frame):
             self.ma_properties_warn_var.set("Please choose a property first.")
 
     def setup_sa(self):
+        if self.browse_files_btn.winfo_ismapped():
+            self.browse_files_btn.configure(state=tk.DISABLED)
+            self.browse_back_btn.grid_forget()
+        self.parent.update()
         bullet = "\u2022"
         bundeslaende = combobox_dicts.bundeslaende
         try:
@@ -325,8 +394,12 @@ class MainWindow(ttk.Frame):
         self.sa_password_lbl = ttk.Label(self.sa_form_frame, text="Statistik Amt Password: ")
         self.sa_password_entry = ttk.Entry(self.sa_form_frame, show=bullet, width=self.field_width, textvariable=self.sa_password_var)
         self.sa_save_login_btn = ttk.Button(self.sa_form_frame, text="Save login details", command=self.save_sa_login)
+        self.sa_save_login_tooltip = TT.ToolTip(self.sa_save_login_btn, "Save your Statistik Amt login info for future"
+                                                                        " use")
         self.sa_change_details_btn = ttk.Button(self.sa_form_frame, text="Change login details",
                                                 command=self.change_sa_login)
+        self.sa_change_details_tooltip = TT.ToolTip(self.sa_change_details_btn, "Change your saved Statistik Amt login"
+                                                                                " details.")
         self.sa_warning_var = tk.StringVar()
         window_width = self.parent.winfo_width()
         wraplength = window_width/4
@@ -380,6 +453,7 @@ class MainWindow(ttk.Frame):
         self.sa_calculate_separator.grid(row=4, column=0, columnspan=4, sticky=tk.W+tk.E, padx=20)
 
     def check_sa_credential(self, call_origin, ma_property):
+        self.parent.update()
         time_now = datetime.now().time()
         eleven = datetime.strptime("23:00", "%H:%M").time()
         eleven_thirty = datetime.strptime("23:30", "%H:%M").time()
@@ -400,7 +474,7 @@ class MainWindow(ttk.Frame):
                 sa_cred_thread.start()
                 self.parent.after(100, self.check_sa_cred_queue)
             elif call_origin == "send stats":
-                self.send_to_sa.configure(state=tk.DISABLED)
+                self.send_to_sa_btn.configure(state=tk.DISABLED)
                 self.warning_lbl_style.configure('Warning.TLabel', foreground='green')
                 self.sa_options_warning_var.set("Signing into Statistics Amt site...")
                 sa_cred_thread = threading.Thread(
@@ -410,7 +484,7 @@ class MainWindow(ttk.Frame):
                 self.parent.after(100, self.check_sa_cred_queue)
 
     def save_sa_login(self):
-        # self.sa_property = self.ma_properties_combobox.get()
+        self.parent.update()
         self.sa_user_id = self.sa_user_id_entry.get()
         self.sa_password = self.sa_password_entry.get()
         self.bundesland = combobox_dicts.bundeslaende[self.bundesland_combobox.get()][0]
@@ -421,7 +495,21 @@ class MainWindow(ttk.Frame):
 
         if self.sa_user_id != "" and self.sa_password != "":
             if self.bundesland != "":
-                if self.sa_login_details.get(self.sa_property, {}).get("sa_user_id", "") == "":
+                if self.sa_property == "Upload Bookings":
+                    self.sa_property = "User ID {}".format(self.sa_user_id)
+                    if self.sa_login_details.get(self.sa_property, {}).get("sa_user_id", "") == "":
+                        self.sa_login_details[self.sa_property] = {}
+                        self.sa_login_details[self.sa_property]["sa_user_id"] = self.sa_user_id
+                        self.sa_login_details[self.sa_property]["sa_password"] = self.sa_password
+                        self.sa_login_details[self.sa_property]["bundesland"] = self.bundesland
+                        self.sa_login_details[self.sa_property]["beds"] = 0
+                    else:
+                        if self.sa_logins_used > 3:
+                            self.sa_login_details[self.sa_property]["sa_user_id"] = self.sa_user_id
+                            self.sa_login_details[self.sa_property]["sa_password"] = self.sa_password
+                            self.sa_login_details[self.sa_property]["bundesland"] = self.bundesland
+                            self.sa_login_details[self.sa_property]["beds"] = 0
+                elif self.sa_login_details.get(self.sa_property, {}).get("sa_user_id", "") == "":
                     self.sa_login_details[self.sa_property] = {}
                     self.sa_login_details[self.sa_property]["sa_user_id"] = self.sa_user_id
                     self.sa_login_details[self.sa_property]["sa_password"] = self.sa_password
@@ -442,6 +530,7 @@ class MainWindow(ttk.Frame):
             self.sa_warning_var.set("One or more fields empty!")
 
     def sa_credential_ok(self, status):
+        self.parent.update()
         if status == "good":
             self.warning_lbl_style.configure('Warning.TLabel', foreground='green')
             self.sa_warning_var.set("Login successful!")
@@ -464,6 +553,7 @@ class MainWindow(ttk.Frame):
             self.sa_password_var.set("")
 
     def change_sa_login(self):
+        self.parent.update()
         self.sa_user_id_var.set("")
         self.sa_user_id_entry.configure(state=tk.ACTIVE)
         self.sa_user_id_entry.focus()
@@ -474,6 +564,7 @@ class MainWindow(ttk.Frame):
         self.sa_save_login_btn.grid(row=3, column=1, sticky=tk.E, padx=20, pady=2)
 
     def calculate_statistics(self):
+        self.parent.update()
         self.sa_warning_var.set("")
         width = self.parent.winfo_width()
         wrap_length = width / 3.0
@@ -536,6 +627,7 @@ class MainWindow(ttk.Frame):
             self.calculate_warning_var.set("Please fill in login details above first")
 
     def setup_sa_options(self):
+        self.parent.update()
         window_width = self.parent.winfo_width()
         wrap_length = window_width * 0.45
         #  Statistics Amt options Widgets
@@ -557,8 +649,10 @@ class MainWindow(ttk.Frame):
         self.forced_closed_lbl2 = ttk.Label(self.sa_options_frame, style="Options.TLabel", text="dieses Berichtsmonats")
         self.sa_options_warning_var = tk.StringVar()
         self.sa_options_warning_lbl = ttk.Label(self.sa_options_frame, style="Warning.TLabel", textvariable=self.sa_options_warning_var)
-        self.send_to_sa = ttk.Button(self.sa_options_frame, text="SEND",
+        self.send_to_sa_btn = ttk.Button(self.sa_options_frame, style="Upload.TButton", text="SEND",
                                      command=lambda: self.check_sa_credential("send stats", self.sa_property))
+        self.send_to_sa_tooltip = TT.ToolTip(self.send_to_sa_btn, "Send your calculated statistics for the chosen "
+                                                                  "month to the Statistik Amt.")
 
         #  Pack Statistcs Amt options widgets
         self.sa_options_frame.pack(fill=tk.X)
@@ -575,7 +669,7 @@ class MainWindow(ttk.Frame):
         self.forced_closed_lbl.grid(row=3, column=0, padx=(20, 10), pady=(0, 2), sticky=tk.E)
         self.forced_closed_combo.grid(row=3, column=1, sticky=tk.W, pady=(0, 2))
         self.forced_closed_lbl2.grid(row=3, column=2, columnspan=3, padx=(0, 20), pady=(0, 2), sticky=tk.W)
-        self.send_to_sa.grid(row=4, column=4, columnspan=4, padx=(0, 20), pady=(0, 2), sticky=tk.W)
+        self.send_to_sa_btn.grid(row=4, column=4, columnspan=4, padx=(0, 20), pady=(0, 2), sticky=tk.W)
         self.sa_options_warning_lbl.grid(row=4, column=0, columnspan=4, sticky=tk.E, padx=10, pady=(0, 2))
         if self.sa_login_details.get(self.sa_property, {}).get("beds", 0) > 0:
             self.number_beds_var.set(self.sa_login_details[self.sa_property]["beds"])
@@ -583,6 +677,7 @@ class MainWindow(ttk.Frame):
             self.number_beds_var.set("0")
 
     def send_statistics(self, status, already_sent_continue=False):
+        self.parent.update()
         self.sa_options_warning_var.set("")
         try:
             self.send_sa_progress_var.set("")
@@ -590,7 +685,13 @@ class MainWindow(ttk.Frame):
         except:
             pass
         if status == "good":
-            self.beds = int(self.number_beds_entry.get().replace(",", "").replace(".", ""))
+            try:
+                self.beds = int(self.number_beds_entry.get().replace(",", "").replace(".", ""))
+            except ValueError:
+                self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
+                self.sa_options_warning_var.set("Number of beds must be an integer")
+                self.send_to_sa_btn.configure(state=tk.ACTIVE)
+                return
             sa_options_dict = {
                 "beds": self.beds,
                 "closed on": self.closed_combo.get(),
@@ -621,7 +722,7 @@ class MainWindow(ttk.Frame):
                                                                     mode="determinate")
                         self.send_sa_progress_var = tk.StringVar()
                         self.send_sa_progress_lbl = ttk.Label(self.send_sa_progress_frame, style="Options.TLabel", wraplength=wrap_length,
-                                                              textvariable=self.send_sa_progress_var)
+                                                              textvariable=self.send_sa_progress_var, foreground="green")
                         self.send_sa_yes_btn = ttk.Button(self.send_sa_progress_frame, text="Yes",
                                                           command=lambda: self.send_statistics("good", True))
                         self.send_sa_no_btn = ttk.Button(self.send_sa_progress_frame, text="No",
@@ -634,13 +735,17 @@ class MainWindow(ttk.Frame):
                         self.send_sa_progress_lbl.pack(fill=tk.X, padx=20, pady=(0, 2))
                         self.send_sa_separator.pack(fill=tk.X, padx=20)
                 elif int(self.beds) == 0:
-                    self.send_to_sa.configure(state=tk.ACTIVE)
+                    self.send_to_sa_btn.configure(state=tk.ACTIVE)
                     self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
                     self.sa_options_warning_var.set("Number of beds must be more than zero!")
-            except TypeError and ValueError:
+            except TypeError:
                 self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
                 self.sa_options_warning_var.set("Number of beds must be an integer")
-                self.send_to_sa.configure(state=tk.ACTIVE)
+                self.send_to_sa_btn.configure(state=tk.ACTIVE)
+            except ValueError:
+                self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
+                self.sa_options_warning_var.set("Number of beds must be an integer")
+                self.send_to_sa_btn.configure(state=tk.ACTIVE)
         elif status == "bad":
             self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
             self.sa_options_warning_var.set("Details incorrect, could not sign in")
@@ -735,6 +840,12 @@ class MainWindow(ttk.Frame):
                 self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
                 self.calculate_warning_var.set("Could not calculate the statistics properly, please make sure you have"
                                                " chosen the correct channel manager above and try again.")
+            elif message == "wrong csv":
+                self.calculate_warning.grid(row=3, column=1, columnspan=2, sticky=tk.W, pady=2)
+                self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
+                self.calculate_warning_var.set("Could not calculate the statistics properly, please make sure you have"
+                                               " chosen the correct 'csv' file and try again.")
+                self.calculate_btn.configure(state=tk.ACTIVE)
             elif isinstance(message, OrderedDict):
                 self.statistics_results = message
             else:
@@ -747,6 +858,7 @@ class MainWindow(ttk.Frame):
         try:
             message = self.sa_send_queue.get(0)
             if message == "already sent":
+                self.send_sa_progress_lbl.configure(foreground='red')
                 self.send_sa_progress_var.set("You have already sent statistics for this month, would you like to send "
                                               "them again?")
                 self.send_sa_progress_bar.forget()
@@ -755,10 +867,13 @@ class MainWindow(ttk.Frame):
             elif isinstance(message, int):
                 self.send_sa_progress_bar.step(message)
                 self.parent.after(10, self.process_sa_send_queue)
-            elif message == "Finished":
-                self.send_sa_progress_var.set("Statistics successfully sent!")
+            elif isinstance(message, list):
+                self.send_sa_progress_var.set("Statistics for {} successfully sent!".format(message[1]))
             elif message == "no date":
                 self.send_sa_progress_bar.forget()
+                self.send_sa_progress_lbl.configure(foreground='red')
+                self.sa_options_frame.forget()
+                self.calculate_btn.configure(state=tk.ACTIVE)
                 self.send_sa_progress_var.set("Sorry, the Statistics Amt website is not allowing statistics to be "
                                               "submitted for the month you have chosen, please choose a different "
                                               "month and try again.")
