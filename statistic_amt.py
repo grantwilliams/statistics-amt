@@ -28,10 +28,10 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
     try:
         driver.find_element_by_id("logoutButton")
     except exceptions.NoSuchElementException:
-        sa_cred_queue.put("sa not ok {}".format(call_origin))
+        sa_cred_queue.put(["sa not ok {}".format(call_origin), "{}".format(ma_property)])
         return
     except exceptions.ElementNotVisibleException:
-        sa_cred_queue.put("sa not ok {}".format(call_origin))
+        sa_cred_queue.put(["sa not ok {}".format(call_origin), "{}".format(ma_property)])
         return
     else:
         driver.find_element_by_id("menu300").click()
@@ -50,6 +50,7 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
 
 
 def send(login_details, options_details, progress_queue, ma_property, statistics_results, already_sent_continue):
+    progress_queue.put("Openings virtual browser...")
     def stats_generator():
         for item in statistics_results.keys():
             yield [statistics_results[item][0], statistics_results[item][1]]
@@ -63,7 +64,7 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     # driver.set_window_size(1920, 1080)
     driver = webdriver.Firefox()
     progress_queue.put(10)
-    progress_queue.put("Openings virtual browser...")
+
 
     driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
     driver.find_element_by_link_text(login_details[ma_property]["bundesland"]).click()
