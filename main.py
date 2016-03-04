@@ -63,38 +63,42 @@ class MainWindow(ttk.Frame):
                 self.sa_login_details = json.load(sa_json)
         self.sa_change_details_flag = "no"
 
+        from_file = []
+        from_myallocator = []
+        for key in self.sa_login_details.keys():
+            if "User ID" in key:
+                from_file.append(key.replace("User ID ", ""))
+            else:
+                from_myallocator.append(self.sa_login_details[key]["sa_user_id"])
         double_ups = 0
-        for item in self.sa_login_details.keys():
-            if self.sa_login_details.get(item, {}).get("sa_user_id", None) in self.sa_login_details.get(
-                    "Upload Bookings", {}).get("sa_user_id", []):
+        for user in from_file:
+            if user in from_myallocator:
                 double_ups += 1
+        self.sa_logins_used = len(from_file) + len(from_myallocator) - double_ups
 
-        self.sa_logins_used = len(self.sa_login_details) + len(
-            self.sa_login_details.get("Upload Bookings", {}).get("sa_user_id", [])) - double_ups
-
-        self.theme = ttk.Style()
-        self.theme.theme_create("dark_theme", parent="alt", settings={
-            "TFrame": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}},
-            "TLabel": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}},
-            "TButton": {"configure": {"background": "#242424", "foreground": "#0FF1F0",
-                                      "relief": "raised", "padding": 2
-                                      }},
-            "TCheckbutton": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}},
-            "TEntry": {"configure": {"background": "#242424", "foreground": "#242424"}},
-            "Horizontal.TProgressbar": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}}
-        })
-        self.theme.theme_use("dark_theme")
+        # self.theme = ttk.Style()
+        # self.theme.theme_create("dark_theme", parent="alt", settings={
+        #     "TFrame": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}},
+        #     "TLabel": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}},
+        #     "TButton": {"configure": {"background": "#242424", "foreground": "#0FF1F0",
+        #                               "relief": "raised", "padding": 2
+        #                               }},
+        #     "TCheckbutton": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}},
+        #     "TEntry": {"configure": {"background": "#242424", "foreground": "#242424"}},
+        #     "Horizontal.TProgressbar": {"configure": {"background": "#242424", "foreground": "#0FF1F0"}}
+        # })
+        # self.theme.theme_use("dark_theme")
 
         self.program_title = ttk.Style()
         self.program_title.configure("ProgramTitle.TLabel", font=("Abel", 48))
         self.label_title = ttk.Style()
-        self.label_title.configure("title.TLabel", font="-size 18")
+        self.label_title.configure("title.TLabel", font="-size 14")
         self.warning_lbl_style = ttk.Style()
         self.warning_lbl_style.configure('Warning.TLabel', font=warning_fs, foreground='red')
         self.options_lbl_style = ttk.Style()
         self.options_lbl_style.configure('Options.TLabel')
         self.upload_style_buttons = ttk.Style()
-        self.upload_style_buttons.configure("Upload.TButton", font=upload_button_font, padding=10)
+        self.upload_style_buttons.configure("Upload.TButton", font=upload_button_font, padding=(0, 10, 0, 10))
         self.back_button_style = ttk.Style()
         self.back_button_style.configure("Back.TButton", padding=(10, 2, 10, 2))
 
@@ -326,6 +330,8 @@ class MainWindow(ttk.Frame):
     def browse_csv(self):
         self.bookings_file = filedialog.askopenfilename(filetypes=(("CSV Files", "*.csv"),))
         self.browse_files_var.set(self.bookings_file)
+        if self.channel_combobox.get() != "--Select Channel Manager--":
+            self.setup_sa(self.browse_files_frame)
 
     def channel_selected(self, event):
         try:
@@ -338,7 +344,8 @@ class MainWindow(ttk.Frame):
         self.field_span = 2
         self.change_btn_column = 1
         self.add_btn_column = 1
-        self.setup_sa(self.browse_files_frame)
+        if self.browse_files_lbl.get() != "":
+            self.setup_sa(self.browse_files_frame)
 
     def download_bookings(self):
         self.parent.update()
@@ -424,7 +431,7 @@ class MainWindow(ttk.Frame):
         self.bundesland_combobox = ttk.Combobox(frame, state="readonly", value=list(bundeslaende.keys()))
         self.sa_login_separator = ttk.Separator(frame, orient="horizontal")
         self.calculate_frame = ttk.Frame(self)
-        self.calculate_frame.columnconfigure(0, weight=1)
+        self.calculate_frame.columnconfigure(3, weight=1)
         self.date_lbl = ttk.Label(self.calculate_frame, text="Submission Month: ")
         self.month_combobox = ttk.Combobox(self.calculate_frame, state="readonly", values=list(combobox_dicts.months.keys()), width=12)
         self.year_combobox = ttk.Combobox(self.calculate_frame, state="readonly",
@@ -470,7 +477,7 @@ class MainWindow(ttk.Frame):
         self.calculate_frame.grid(row=2, column=0, sticky=tk.W+tk.E)
         self.calculate_frame.columnconfigure(0, weight=1)
         self.date_lbl.grid(row=0, column=0, padx=20, pady=2, sticky=tk.E)
-        self.month_combobox.grid(row=0, column=1, padx=(0, 10), pady=2, sticky=tk.W)
+        self.month_combobox.grid(row=0, column=1, padx=(0, 5), pady=2, sticky=tk.W)
         self.month_combobox.current(0)
         self.year_combobox.grid(row=0, column=2, padx=(0, 10), pady=2, sticky=tk.E)
         self.year_combobox.current(0)
@@ -688,7 +695,7 @@ class MainWindow(ttk.Frame):
     def setup_sa_options(self):
         self.parent.update()
         window_width = self.parent.winfo_width()
-        wrap_length = window_width * 0.45
+        wrap_length = window_width * 0.7
         #  Statistics Amt options Widgets
         self.sa_options_frame = ttk.Frame(self)
         self.sa_options_frame.columnconfigure(4, weight=1)
@@ -696,7 +703,7 @@ class MainWindow(ttk.Frame):
         self.number_beds_lbl = ttk.Label(self.sa_options_frame, style="Options.TLabel", wraplength=wrap_length, text=beds, justify=tk.RIGHT)
         self.number_beds_entry = ttk.Entry(self.sa_options_frame, width=5, textvariable=self.number_beds_var)
         self.closed_lbl = ttk.Label(self.sa_options_frame, style="Options.TLabel", wraplength=wrap_length, text=closed, justify=tk.RIGHT)
-        self.closed_lbl2 = ttk.Label(self.sa_options_frame, style="Options.TLabel", text=".dieses Berichtsmonats")
+        self.closed_lbl2 = ttk.Label(self.sa_options_frame, style="Options.TLabel", font="-size 7", text=".dieses Berichtsmonats")
         self.closed_combo = ttk.Combobox(self.sa_options_frame, state="readonly", values=list(combobox_dicts.days_in_month.keys()), width=4)
         self.reopen_lbl = ttk.Label(self.sa_options_frame, style="Options.TLabel", wraplength=wrap_length, text=opened, justify=tk.RIGHT)
         self.reopen_frame = ttk.Frame(self.sa_options_frame)
@@ -706,7 +713,7 @@ class MainWindow(ttk.Frame):
         self.reopen_combo_y = ttk.Combobox(self.sa_options_frame, state="readonly", values=sorted(list(combobox_dicts.options_years.keys())), width=5)
         self.forced_closed_lbl = ttk.Label(self.sa_options_frame, style="Options.TLabel", wraplength=wrap_length, text=forced_close, justify=tk.RIGHT)
         self.forced_closed_combo = ttk.Combobox(self.sa_options_frame, state="readonly", values=list(combobox_dicts.days_in_month.keys()), width=4)
-        self.forced_closed_lbl2 = ttk.Label(self.sa_options_frame, style="Options.TLabel", text=".dieses Berichtsmonats")
+        self.forced_closed_lbl2 = ttk.Label(self.sa_options_frame, style="Options.TLabel", font="-size 7", text=".dieses Berichtsmonats")
         self.sa_options_warning_var = tk.StringVar()
         self.sa_options_warning_lbl = ttk.Label(self.sa_options_frame, style="Warning.TLabel", textvariable=self.sa_options_warning_var)
         self.send_to_sa_btn = ttk.Button(self.sa_options_frame, style="Upload.TButton", text="SEND",
@@ -730,8 +737,8 @@ class MainWindow(ttk.Frame):
         self.forced_closed_lbl.grid(row=3, column=0, padx=(0, 10), pady=(0, 2), sticky=tk.E)
         self.forced_closed_combo.grid(row=3, column=1, sticky=tk.W, pady=(0, 2))
         self.forced_closed_lbl2.grid(row=3, column=2, columnspan=3, pady=(0, 2), sticky=tk.W)
-        self.send_to_sa_btn.grid(row=4, column=4, columnspan=4, pady=(0, 10), sticky=tk.E)
-        self.sa_options_warning_lbl.grid(row=4, column=0, columnspan=4, sticky=tk.E, padx=10, pady=(0, 2))
+        self.send_to_sa_btn.grid(row=4, column=1, columnspan=3, pady=(0, 10), sticky=tk.E)
+        self.sa_options_warning_lbl.grid(row=4, column=0, columnspan=2, sticky=tk.E, padx=10, pady=(0, 2))
         self.options_separator.grid(row=5, column=0, columnspan=6, pady=2, sticky=tk.W+tk.E)
         if self.sa_login_details.get(self.sa_property, {}).get("beds", 0) > 0:
             self.number_beds_var.set(self.sa_login_details[self.sa_property]["beds"])
@@ -786,7 +793,7 @@ class MainWindow(ttk.Frame):
                         window_width = self.parent.winfo_width()
                         wrap_length = window_width - 40
                         self.send_sa_progress_frame = ttk.Frame(self)
-                        self.send_sa_progress_frame.columnconfigure(0, weight=1)
+                        self.send_sa_progress_frame.columnconfigure(2, weight=1)
                         self.send_sa_progress_bar = ttk.Progressbar(self.send_sa_progress_frame, orient="horizontal",
                                                                     mode="determinate")
                         self.send_sa_progress_var = tk.StringVar()
@@ -799,10 +806,10 @@ class MainWindow(ttk.Frame):
                         self.send_sa_separator = ttk.Separator(self.send_sa_progress_frame, orient="horizontal")
 
                         self.send_sa_progress_frame.grid(row=5, column=0, padx=20, sticky=tk.W+tk.E)
-                        self.send_sa_progress_frame.columnconfigure(0, weight=1)
-                        self.send_sa_progress_bar.grid(row=0, column=0, columnspan=2, pady=2, sticky=tk.W+tk.E)
-                        self.send_sa_progress_lbl.grid(row=1, column=0, columnspan=2, pady=2, sticky=tk.W+tk.E)
-                        self.send_sa_separator.grid(row=3, column=0, columnspan=2, pady=2, sticky=tk.W+tk.E)
+
+                        self.send_sa_progress_bar.grid(row=0, column=0, columnspan=3, pady=2, sticky=tk.W+tk.E)
+                        self.send_sa_progress_lbl.grid(row=1, column=0, columnspan=3, pady=2, sticky=tk.W+tk.E)
+                        self.send_sa_separator.grid(row=3, column=0, columnspan=3, pady=2, sticky=tk.W+tk.E)
                 elif int(self.beds) == 0:
                     self.send_to_sa_btn.configure(state=tk.ACTIVE)
                     self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
@@ -932,7 +939,7 @@ class MainWindow(ttk.Frame):
                 self.send_sa_progress_var.set("You have already sent statistics for this month, would you like to send "
                                               "them again?")
                 self.send_sa_yes_btn.grid(row=2, column=0, pady=2, sticky=tk.W)
-                self.send_sa_no_btn.grid(row=2, column=0, padx=60, pady=2, sticky=tk.W)
+                self.send_sa_no_btn.grid(row=2, column=1, padx=2, pady=2, sticky=tk.W)
             elif isinstance(message, int):
                 self.send_sa_progress_bar.step(message)
                 self.parent.after(10, self.process_sa_send_queue)

@@ -100,12 +100,13 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     progress_queue.put(10)
     driver.find_element_by_link_text("Gäste aus Europa").click()
 
+    info_button_classes = ["class275", "class280", "class285", "class290"]
     progress_queue.put("Entering statistics for guests from Europe...")
     current_field = driver.find_element_by_name("ANK_Deutschland")
     for i in range(20):
         progress_queue.put(1)
         current_stats = next(statistics_generator)
-        if current_field.get_attribute("class") == "class275" or current_field.get_attribute("class") == "class285":
+        if current_field.get_attribute("class") in info_button_classes:
             current_field.send_keys(Keys.TAB, current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
             current_field = driver.switch_to.active_element
         else:
@@ -119,7 +120,7 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     for i in range(17):
         progress_queue.put(1)
         current_stats = next(statistics_generator)
-        if current_field.get_attribute("class") == "class275" or current_field.get_attribute("class") == "class285":
+        if current_field.get_attribute("class") in info_button_classes:
             current_field.send_keys(Keys.TAB, current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
             current_field = driver.switch_to.active_element
         else:
@@ -133,7 +134,7 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     for i in range(17):
         progress_queue.put(1)
         current_stats = next(statistics_generator)
-        if current_field.get_attribute("class") == "class275" or current_field.get_attribute("class") == "class285":
+        if current_field.get_attribute("class") in info_button_classes:
             current_field.send_keys(Keys.TAB, current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
             current_field = driver.switch_to.active_element
         else:
@@ -142,5 +143,7 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
 
     statistics_generator.close()
     progress_queue.put(5)
+    assert driver.find_element_by_name("ANK_Insgesamt").get_attribute('value') == "95"
+    assert driver.find_element_by_name("UEB_Insgesamt").get_attribute('value') == "293"
     progress_queue.put(["Finished", options_details["sub month"]])
     # driver.quit()
