@@ -28,7 +28,7 @@ def check_other(country):
         return "GREAT BRITAIN"
 
 
-#takes ISO country code and returns a country name
+# takes ISO country code and returns a country name
 def check_code(code):
     if code in ISO3166:
         if ISO3166.get(code) in south_america:
@@ -63,6 +63,7 @@ channel_managers = {
         "guests": 15,
         "date format": "%Y-%m-%d"
     },
+    # TEST
     "Switchboard": {
         "arrival date": 2,
         "nights": 1,
@@ -104,25 +105,36 @@ def calculate(month, year, filename, progress_queue, channel):
                         if not booking_canceled:
                             try:
                                 if row[csv_column["nationality"]].upper() in statistics:
-                                    statistics[row[csv_column["nationality"]].upper()][0] += int(row[csv_column["guests"]])
-                                    statistics[row[csv_column["nationality"]].upper()][1] += int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
+                                    statistics[row[csv_column["nationality"]].upper()][0] += \
+                                        int(row[csv_column["guests"]])
+                                    statistics[row[csv_column["nationality"]].upper()][1] += \
+                                        int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
                                 elif row[csv_column["nationality"]] == "":
                                     statistics["INFO NOT GIVEN"][0] += int(row[csv_column["guests"]])
-                                    statistics["INFO NOT GIVEN"][1] += int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
+                                    statistics["INFO NOT GIVEN"][1] += \
+                                        int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
                                 elif check_other(row[csv_column["nationality"]].upper()) in statistics:
-                                    statistics[check_other(row[csv_column["nationality"]].upper())][0] += int(row[csv_column["guests"]])
-                                    statistics[check_other(row[csv_column["nationality"]].upper())][1] += int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
+                                    statistics[check_other(row[csv_column["nationality"]].upper())][0] += \
+                                        int(row[csv_column["guests"]])
+                                    statistics[check_other(row[csv_column["nationality"]].upper())][1] += \
+                                        int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
                                 elif check_code(row[csv_column["nationality"]].upper()) in statistics:
-                                    statistics[check_code(row[csv_column["nationality"]].upper())][0] += int(row[csv_column["guests"]])
-                                    statistics[check_code(row[csv_column["nationality"]].upper())][1] += int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
+                                    statistics[check_code(row[csv_column["nationality"]].upper())][0] += \
+                                        int(row[csv_column["guests"]])
+                                    statistics[check_code(row[csv_column["nationality"]].upper())][1] += \
+                                        int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
                                 elif row[csv_column["nationality"]] not in statistics:
-                                    statistics["INFO NOT GIVEN"][0] += int(row[csv_column["guests"]])
-                                    statistics["INFO NOT GIVEN"][1] += int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
+                                    statistics["INFO NOT GIVEN"][0] += \
+                                        int(row[csv_column["guests"]])
+                                    statistics["INFO NOT GIVEN"][1] += \
+                                        int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
+                                statistics["TOTAL"][0] += int(row[csv_column["guests"]])
+                                statistics["TOTAL"][1] += int(row[csv_column["nights"]])*int(row[csv_column["guests"]])
                             except ValueError:
-                                pass#next(bookings_csv_read)  # skip if can't convert to int
+                                pass  # skip if can't convert to int
                                 errors[1] += 1
                 except ValueError:
-                    pass#next(bookings_csv_read)  # skip if date doesn't match
+                    pass  # skip if date doesn't match
                     errors[0] += 1
                 except IndexError:
                     progress_queue.put("wrong csv")
@@ -133,14 +145,13 @@ def calculate(month, year, filename, progress_queue, channel):
         if queue_next != 55:
             progress_queue.put(55-queue_next)
         progress_queue.put(10)
-        if not os.path.isdir("Statistics_Saved_Files"):
-            os.makedirs("Statistics_Saved_Files")
-        with open("Statistics_Saved_Files/Statistics-{}-{}.csv".format(month, year), 'w', newline='', encoding='utf-8') as write_file:
+        if not os.path.isdir("Statistics Saved Files"):
+            os.makedirs("Statistics Saved Files")
+        with open("Statistics Saved Files/Statistics-{}-{}.csv".format(month, year), 'w', newline='',
+                  encoding='utf-8') as write_file:
             statistics_csv_write = csv.writer(write_file)
 
             statistics_csv_write.writerow(['Country', 'Guests', 'Nights'])
-            total_guests = 0
-            total_overnights = 0
             queue_next = 65
             for key, value in statistics.items():
                 if queue_next < 95:
@@ -150,17 +161,8 @@ def calculate(month, year, filename, progress_queue, channel):
                     statistics_csv_write.writerow([key] + [str(value[0])] + [str(value[1])])
                 else:
                     statistics_csv_write.writerow([key.title()] + [str(value[0])] + [str(value[1])])
-                try:
-                    total_guests += int(value[0])
-                except ValueError:
-                    pass  # Empty dictionary entry for separator between country groups
-                try:
-                    total_overnights += int(value[1])
-                except ValueError:
-                    pass  # Empty dictionary entry for separator between country groups
             progress_queue.put(4)
-            statistics_csv_write.writerow(['Total', total_guests, total_overnights])
     progress_queue.put("Finished!")
-    progress_queue.put(statistics)
+    progress_queue.put([statistics, "{} {}".format(month, year)])
     # os.remove(filename)  # TODO add this back
     return

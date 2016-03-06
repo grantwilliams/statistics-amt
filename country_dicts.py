@@ -308,7 +308,8 @@ statistics_results = (
     ("OTHER ASIA", [0, 0]),
     ("AUSTRALIA", [0, 0]),
     ("NEW ZEALAND", [0, 0]),
-    ("INFO NOT GIVEN", [0, 0])
+    ("INFO NOT GIVEN", [0, 0]),
+    ("TOTAL", [0, 0])
 )
 
 statistics_results = OrderedDict(statistics_results)

@@ -10,7 +10,12 @@ from bs4 import BeautifulSoup
 def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
     driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
     # driver = webdriver.Firefox()
-    driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
+    driver.set_page_load_timeout(15)
+    try:
+        driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
+    except exceptions.TimeoutException:
+        sa_cred_queue.put("sa page timeout {}".format(call_origin))
+        return
     try:
         WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
             By.LINK_TEXT, login_details[ma_property]["bundesland"]))).click()
@@ -50,6 +55,7 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
 
 
 def send(login_details, options_details, progress_queue, ma_property, statistics_results, already_sent_continue):
+    print(statistics_results)
     progress_queue.put("Openings virtual browser...")
     def stats_generator():
         for item in statistics_results.keys():
@@ -60,14 +66,22 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
         open_on = ""
     else:
         open_on = options_details["open on"]
-    # driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
-    # driver.set_window_size(1920, 1080)
-    driver = webdriver.Firefox()
+    driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
+    driver.set_window_size(1920, 1080)
+    # driver = webdriver.Firefox()
+    driver.set_page_load_timeout(15)
     progress_queue.put(10)
 
-
-    driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
-    driver.find_element_by_link_text(login_details[ma_property]["bundesland"]).click()
+    try:
+        driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
+    except exceptions.TimeoutException:
+        progress_queue.put("timed out")
+        return
+    try:
+        WebDriverWait(driver, 10).until(EC.visibility_of_element_located((
+            By.LINK_TEXT, login_details[ma_property]["bundesland"]))).click()
+    except exceptions.TimeoutException:
+        progress_queue.put("timed out")
 
     user_id = driver.find_element_by_id("loginid")
     user_id.send_keys(login_details[ma_property]["sa_user_id"])
@@ -143,7 +157,11 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
 
     statistics_generator.close()
     progress_queue.put(5)
-    assert driver.find_element_by_name("ANK_Insgesamt").get_attribute('value') == "95"
-    assert driver.find_element_by_name("UEB_Insgesamt").get_attribute('value') == "293"
-    progress_queue.put(["Finished", options_details["sub month"]])
+    try:
+        assert driver.find_element_by_name("ANK_Insgesamt").get_attribute('value') == str(login_details["TOTAL"][0])
+        assert driver.find_element_by_name("UEB_Insgesamt").get_attribute('value') == str(login_details["TOTAL"][1])
+    except AssertionError:
+        progress_queue.put("assertion error")
+        return
+    progress_queue.put(["Finished", options_details["sub month"], statistics_results])
     # driver.quit()

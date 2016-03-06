@@ -2,13 +2,17 @@ import re
 import os
 import json
 import mechanicalsoup
+import requests.exceptions
 
 
 def check_cred(login_details, ma_cred_queue, call_origin):
     browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
     try:
-        login_page = browser.get('https://inbox.myallocator.com/en/login')
-    except Exception:
+        login_page = browser.get('https://inbox.myallocator.com/en/login', timeout=15)
+    except requests.exceptions.Timeout:
+        ma_cred_queue.put(["exit", "MyAllocator website has timed out and could not be reached, please try again"
+                                   " later."])
+    except requests.exceptions.ConnectionError:
         ma_cred_queue.put(["exit", "Connection error, could not connect to internet"])
         return
     else:
@@ -59,7 +63,11 @@ def download_bookings_csv(login_details, url, download_queue):
     browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
     download_queue.put(20)
 
-    login_page = browser.get('https://inbox.myallocator.com/en/login')
+    try:
+        login_page = browser.get('https://inbox.myallocator.com/en/login', timeout=15)
+    except requests.exceptions.Timeout:
+        download_queue.put("timed out")
+        return
 
     login_form = login_page.soup.select('.login_box')[0].select('form')[0]
     download_queue.put(20)

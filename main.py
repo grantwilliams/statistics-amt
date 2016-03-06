@@ -9,7 +9,6 @@ import tkinter as tk
 from tkinter import ttk, filedialog
 from idlelib import ToolTip as TT
 from PIL import Image, ImageTk
-from collections import OrderedDict
 import json
 import myallocator
 import statistic_amt
@@ -169,7 +168,8 @@ class MainWindow(ttk.Frame):
                                                                                 "details.")
         self.ma_back_btn = ttk.Button(self.ma_form_frame, style="Back.TButton", text="Back", command=lambda: self.upload_style("myallocator"))
         self.ma_warning_var = tk.StringVar()
-        self.ma_warning = ttk.Label(self.ma_form_frame, style="Warning.TLabel", textvariable=self.ma_warning_var)
+        self.ma_warning = ttk.Label(self.ma_form_frame, style="Warning.TLabel", wraplength=self.parent.winfo_width()*.6,
+                                    textvariable=self.ma_warning_var)
 
         #  pack MyAllocator widgets
         self.ma_form_frame.grid(row=1, column=0, sticky=tk.W+tk.E, padx=20)
@@ -287,12 +287,15 @@ class MainWindow(ttk.Frame):
             self.ma_download_btn = ttk.Button(self.ma_form_frame, text="Download Bookings",
                                                 command=self.download_bookings)
             self.ma_properties_serparator = ttk.Separator(self.ma_form_frame, orient="horizontal")
+            self.ma_properties_warn_var = tk.StringVar()
+            self.ma_properties_warn_lbl = ttk.Label(self.ma_form_frame, style="Warning.TLabel",
+                                                    textvariable=self.ma_properties_warn_var)
 
             self.ma_properties_lbl.grid(row=7, column=0, padx=(0, 20), pady=2, sticky=tk.E)
             self.ma_properties_combobox.grid(row=7, column=1, padx=(0, 20), pady=2, sticky=tk.W)
             self.ma_download_btn.grid(row=7, column=2, pady=2, sticky=tk.E)
             self.ma_properties_combobox.current(0)
-            self.ma_properties_serparator.grid(row=9, column=0, columnspan=4, pady=2, sticky=tk.W+tk.E)
+            self.ma_properties_serparator.grid(row=10, column=0, columnspan=4, pady=2, sticky=tk.W+tk.E)
 
     def upload_bookings(self):
         self.upload_style_frame.grid_forget()
@@ -345,7 +348,6 @@ class MainWindow(ttk.Frame):
         self.parent.update()
         self.ma_warning_var.set("")
         property = self.ma_properties[self.ma_properties_combobox.get()][0]
-        self.ma_properties_warn_var = tk.StringVar()
         if property != "" and self.ma_properties_warn_var.get() in ["", "Finished!"]:
             self.ma_download_btn.configure(state=tk.DISABLED)
             self.ma_properties_combobox.configure(state=tk.DISABLED)
@@ -367,9 +369,7 @@ class MainWindow(ttk.Frame):
             self.parent.after(100, self.load_bar)
             self.setup_sa(self.ma_form_frame)
         else:
-            self.ma_properties_warn_lbl = ttk.Label(self.ma_form_frame, style="Warning.TLabel",
-                                                    textvariable=self.ma_properties_warn_var)
-            self.ma_properties_warn_lbl.grid(row=9, column=1, columnspan=2, sticky=tk.W)
+            self.ma_properties_warn_lbl.grid(row=8, column=1, columnspan=2, sticky=tk.W)
             self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
             self.ma_properties_warn_var.set("Please choose a property first.")
 
@@ -489,8 +489,8 @@ class MainWindow(ttk.Frame):
     def check_sa_credential(self, call_origin, ma_property):
         self.parent.update()
         time_now = datetime.now().time()
-        eleven = datetime.strptime("22:58", "%H:%M").time()
-        eleven_thirty = datetime.strptime("23:32", "%H:%M").time()
+        eleven = datetime.strptime("22:55", "%H:%M").time()
+        eleven_thirty = datetime.strptime("23:35", "%H:%M").time()
         if eleven <= time_now <= eleven_thirty:
             if call_origin == "sa save details yes" or call_origin == "sa save details no":
                 self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
@@ -727,7 +727,7 @@ class MainWindow(ttk.Frame):
         self.forced_closed_combo.grid(row=3, column=1, sticky=tk.W, pady=(0, 2))
         self.forced_closed_lbl2.grid(row=3, column=2, columnspan=3, pady=(0, 2), sticky=tk.W)
         self.send_to_sa_btn.grid(row=4, column=1, columnspan=3, pady=(0, 10), sticky=tk.E)
-        self.sa_options_warning_lbl.grid(row=4, column=0, columnspan=2, sticky=tk.E, padx=10, pady=(0, 2))
+        self.sa_options_warning_lbl.grid(row=4, column=0, sticky=tk.E, padx=10, pady=(0, 2))
         self.options_separator.grid(row=5, column=0, columnspan=6, pady=2, sticky=tk.W+tk.E)
         if self.sa_login_details.get(self.sa_property, {}).get("beds", 0) > 0:
             self.number_beds_var.set(self.sa_login_details[self.sa_property]["beds"])
@@ -827,7 +827,8 @@ class MainWindow(ttk.Frame):
             self.sa_change_details_flag = "yes"
         elif status == "failed":
             self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
-            self.sa_options_warning_var.set("Statistics Amt website timed out, please try again later.")
+            self.sa_options_warning_var.set("Statistics Amt website timed out and could not be reached,, please try "
+                                            "again later.")
 
     def load_bar(self):
         try:
@@ -838,6 +839,10 @@ class MainWindow(ttk.Frame):
                 self.parent.after(100, self.load_bar)
             elif message == "bookings.csv":
                 self.bookings_file = message
+            elif message == "timed out":
+                self.ma_properties_warn_lbl.grid(row=9, column=1, columnspan=2, sticky=tk.W)
+                self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
+                self.ma_properties_warn_var.set("MyAllocator website timed out, please try again later")
             else:
                 self.download_bar.step(message)
                 self.parent.after(100, self.load_bar)
@@ -904,8 +909,10 @@ class MainWindow(ttk.Frame):
                 self.calculate_warning_var.set("Could not calculate the statistics properly, please make sure you have"
                                                " chosen the correct 'csv' file and try again.")
                 self.calculate_btn.configure(state=tk.ACTIVE)
-            elif isinstance(message, OrderedDict):
-                self.statistics_results = message
+            elif isinstance(message, list):
+                self.statistics_results = message[0]  # TODO move to process sa end queue when site works
+                import display_results
+                display_results.ResultsWindow(self, message[0], message[1])
             else:
                 self.calculate_progress_bar.step(message)
                 self.parent.after(25, self.process_calculate_progress_bar)
@@ -926,6 +933,8 @@ class MainWindow(ttk.Frame):
                 self.parent.after(10, self.process_sa_send_queue)
             elif isinstance(message, list):
                 self.send_sa_progress_var.set("Statistics for {} successfully sent!".format(message[1]))
+                import display_results
+                display_results.ResultsWindow(self, message[2], message[1])
             elif message == "no date":
                 self.send_sa_progress_bar.grid_forget()
                 self.send_sa_progress_lbl.configure(foreground='red')
@@ -934,6 +943,10 @@ class MainWindow(ttk.Frame):
                 self.send_sa_progress_var.set("Sorry, the Statistics Amt website is not allowing statistics to be "
                                               "submitted for the month you have chosen, please choose a different "
                                               "month and try again.")
+            elif message == "timed out":
+                self.send_sa_progress_lbl.configure(foreground='red')
+                self.send_sa_progress_var.set("Statistics Amt website timed out and could not be reached, please try "
+                                              "again later.")
             else:
                 self.send_sa_progress_var.set(message)
                 self.parent.after(10, self.process_sa_send_queue)
