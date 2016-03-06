@@ -1,4 +1,5 @@
 import os
+from os.path import expanduser
 import sys
 import tkinter as tk
 from tkinter import ttk
@@ -201,19 +202,19 @@ class ResultsWindow(tk.Toplevel):
         month_lbl.grid(row=23, column=0, columnspan=11, sticky=tk.W+tk.E)
         results_separator.grid(row=24, column=0, columnspan=11, sticky=tk.W+tk.E)
 
+        home = expanduser("~")
         if sys.platform == 'win32':
             self.file_location = "Statistics Saved Files"
         else:
-            self.file_location = "~/Statistik-Amt/Statistics Saved Files"
+            self.file_location = "{}/Statistik-Amt/Statistics Saved Files".format(home)
 
         sent_text = "These results have already been sent to the Statistik Amt, you do not need to do anything " \
                     "further, a copy of the results have been saved as a 'csv' file at '{}', which you can open in " \
                     "Excel, Open Office etc.  Alternatively, you can save this image with the button below, which " \
                     "will save the image to the same folder.".format(os.path.abspath(self.file_location))
 
-        self.parent.update()
+        self.update()
         window_width = self.winfo_width()
-        print(window_width)
         wrap_length = window_width * 0.5
         self.sent_confirm_frame = ttk.Frame(self, style="Sent.TFrame")
         self.sent_confirm_frame.columnconfigure(0, weight=1)
@@ -226,7 +227,7 @@ class ResultsWindow(tk.Toplevel):
         sent_confirm_lbl.grid(row=1, column=0, sticky=tk.W+tk.E)
         save_image_btn.grid(row=2, column=0, columnspan=11, pady=5, sticky=tk.W)
 
-if __name__ == "__main__":
-    boot = tk.Tk()
-    app = ResultsWindow(boot, results, "Februar 2016")
-    boot.mainloop()
+# if __name__ == "__main__":
+#     boot = tk.Tk()
+#     app = ResultsWindow(boot, results, "Februar 2016")
+#     boot.mainloop()

@@ -1,4 +1,5 @@
 import os
+from os.path import expanduser
 import sys
 import csv
 import copy
@@ -145,9 +146,16 @@ def calculate(month, year, filename, progress_queue, channel):
         if queue_next != 55:
             progress_queue.put(55-queue_next)
         progress_queue.put(10)
-        if not os.path.isdir("Statistics Saved Files"):
-            os.makedirs("Statistics Saved Files")
-        with open("Statistics Saved Files/Statistics-{}-{}.csv".format(month, year), 'w', newline='',
+        home = expanduser("~")
+        if sys.platform == "win32":
+            if not os.path.isdir("Statistics Saved Files"):
+                os.makedirs("Statistics Saved Files")
+            file_location = "Statistics Saved Files"
+        else:
+            if not os.path.isdir("{}/Statistik-Amt/Statistics Saved Files".format(home)):
+                os.makedirs("{}/Statistik-Amt/Statistics Saved Files".format(home))
+            file_location = "{}/Statistik-Amt/Statistics Saved Files".format(home)
+        with open("{}/Statistics-{}-{}.csv".format(file_location, month, year), 'w', newline='',
                   encoding='utf-8') as write_file:
             statistics_csv_write = csv.writer(write_file)
 
