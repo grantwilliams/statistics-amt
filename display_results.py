@@ -213,7 +213,7 @@ class ResultsWindow(tk.Toplevel):
                     "Excel, Open Office etc.  Alternatively, you can save this image with the button below, which " \
                     "will save the image to the same folder.".format(os.path.abspath(self.file_location))
 
-        self.update()
+        self.update_idletasks()
         window_width = self.winfo_width()
         wrap_length = window_width * 0.5
         self.sent_confirm_frame = ttk.Frame(self, style="Sent.TFrame")
@@ -227,7 +227,7 @@ class ResultsWindow(tk.Toplevel):
         sent_confirm_lbl.grid(row=1, column=0, sticky=tk.W+tk.E)
         save_image_btn.grid(row=2, column=0, columnspan=11, pady=5, sticky=tk.W)
 
-# if __name__ == "__main__":
-#     boot = tk.Tk()
-#     app = ResultsWindow(boot, results, "Februar 2016")
-#     boot.mainloop()
+if __name__ == "__main__":
+    boot = tk.Tk()
+    app = ResultsWindow(boot, results, "Februar 2016")
+    boot.mainloop()

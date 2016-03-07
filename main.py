@@ -910,9 +910,7 @@ class MainWindow(ttk.Frame):
                                                " chosen the correct 'csv' file and try again.")
                 self.calculate_btn.configure(state=tk.ACTIVE)
             elif isinstance(message, list):
-                self.statistics_results = message[0]  # TODO move to process sa end queue when site works
-                import display_results
-                display_results.ResultsWindow(self, message[0], message[1])
+                self.statistics_results = message[0]
             else:
                 self.calculate_progress_bar.step(message)
                 self.parent.after(25, self.process_calculate_progress_bar)

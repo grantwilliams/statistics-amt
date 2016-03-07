@@ -55,7 +55,6 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
 
 
 def send(login_details, options_details, progress_queue, ma_property, statistics_results, already_sent_continue):
-    print(statistics_results)
     progress_queue.put("Openings virtual browser...")
     def stats_generator():
         for item in statistics_results.keys():
@@ -158,8 +157,8 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     statistics_generator.close()
     progress_queue.put(5)
     try:
-        assert driver.find_element_by_name("ANK_Insgesamt").get_attribute('value') == str(login_details["TOTAL"][0])
-        assert driver.find_element_by_name("UEB_Insgesamt").get_attribute('value') == str(login_details["TOTAL"][1])
+        assert driver.find_element_by_name("ANK_Insgesamt").get_attribute('value') == str(statistics_results["TOTAL"][0])
+        assert driver.find_element_by_name("UEB_Insgesamt").get_attribute('value') == str(statistics_results["TOTAL"][1])
     except AssertionError:
         progress_queue.put("assertion error")
         return
