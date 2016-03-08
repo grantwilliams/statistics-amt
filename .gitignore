@@ -58,6 +58,7 @@ phantomjs
 data_files/.ma_login.json
 data_files/properties.json
 data_files/.sa_login.json
+data_files/.hw_login.json
 
 
 # Unneeded Files/Folders

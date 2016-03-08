@@ -65,13 +65,14 @@ channel_managers = {
         "date format": "%Y-%m-%d"
     },
     # TEST
-    "Switchboard": {
+    "Hostel World ": {
         "arrival date": 2,
-        "nights": 1,
-        "canceled": 9,
-        "nationality": 13,
-        "guests": 9,
-        "date format": "%Y-%m-%d"
+        "nights": 4,
+        "canceled": 0,
+        "canceled answer": "Yes",
+        "nationality": 5,
+        "guests": 3,
+        "date format": "%d %b %y"
     }
 }
 
@@ -98,7 +99,9 @@ def calculate(month, year, filename, progress_queue, channel):
                 if row[csv_column["canceled"]] == csv_column["canceled answer"]:
                     booking_canceled = True
                 try:
-                    row_date = datetime.strptime(row[csv_column["arrival date"]], csv_column["date format"])
+                    row_date = datetime.strptime(row[csv_column["arrival date"]].replace("st", '').replace("nd", '')
+                                                 .replace("rd", '').replace("th", '').replace("'", ''),
+                                                 csv_column["date format"])
                     if row_date.month == month_to_calculate.month and row_date.year == month_to_calculate.year:
                         if queue_next < 55:
                             progress_queue.put(1)
