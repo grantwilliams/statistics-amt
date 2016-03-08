@@ -140,13 +140,3 @@ def get_bookings(login_details, month_chosen, hw_bookings_queue):
                                        [bookings_dict[key]["Nationality"]])
     hw_bookings_queue.put(99 - bar_total)
     hw_bookings_queue.put("Finished")
-
-# login_details = {
-#         "hostel number": "38932",
-#         "username": "grant",
-#         "password": "omVu.s@0VX$/gA7s"
-#     }
-#
-# month = datetime.datetime.strptime("2016-02-01", "%Y-%m-%d")
-#
-# get_bookings(login_details, month, None)
