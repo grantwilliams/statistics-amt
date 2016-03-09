@@ -65,7 +65,7 @@ channel_managers = {
         "date format": "%Y-%m-%d"
     },
     # TEST
-    "Hostel World ": {
+    "Hostel World": {
         "arrival date": 2,
         "nights": 4,
         "canceled": 0,

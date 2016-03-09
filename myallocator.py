@@ -30,7 +30,7 @@ def check_cred(login_details, ma_cred_queue, call_origin):
             ma_cred_queue.put("ma not ok {}".format(call_origin))
 
 
-def get_properties(login_details):
+def get_properties(login_details, get_properties_queue):
     browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
 
     login_page = browser.get('https://inbox.myallocator.com/en/login')
@@ -51,6 +51,7 @@ def get_properties(login_details):
 
     with open("data_files/properties.json", "w") as outfile:
         json.dump(properties, indent=4, sort_keys=True, fp=outfile)
+    get_properties_queue.put("Finished")
 
 
 def download_bookings_csv(login_details, url, download_queue):

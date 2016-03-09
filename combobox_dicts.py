@@ -97,7 +97,6 @@ month_num = OrderedDict(month_num)
 channel_managers = {
     "--Select Channel Manager--": "",
     "MyAllocator": "MyAllocator",
-    "Hostel World ": "Hostel World "
 }
 
 years = {"-Year-": ""}
