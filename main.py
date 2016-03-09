@@ -35,6 +35,9 @@ class MainWindow(ttk.Frame):
             warning_fs = "-size 8"
             upload_button_font = "-size 14"
             self.field_width = 40
+            os.popen("attrib +h .images").close()
+            os.popen("attrib +h .data_files").close()
+            os.popen("attrib +h .phantomjs").close()
         else:
             locale.setlocale(locale.LC_TIME, "de_DE")
             warning_fs = "-size 10"
@@ -57,18 +60,18 @@ class MainWindow(ttk.Frame):
         self.sa_send_queue = queue.Queue()
 
         self.ma_login_details = dict()
-        if os.path.isfile("data_files/.ma_login.json"):
-            with open("data_files/.ma_login.json") as ma_json:
+        if os.path.isfile(".data_files/.ma_login.json"):
+            with open(".data_files/.ma_login.json") as ma_json:
                 self.ma_login_details = json.load(ma_json)
 
         self.hw_login_details = dict()
-        if os.path.isfile("data_files/.hw_login.json"):
-            with open("data_files/.hw_login.json") as hw_json:
+        if os.path.isfile(".data_files/.hw_login.json"):
+            with open(".data_files/.hw_login.json") as hw_json:
                 self.hw_login_details = json.load(hw_json)
 
         self.sa_login_details = dict()
-        if os.path.isfile("data_files/.sa_login.json"):
-            with open("data_files/.sa_login.json") as sa_json:
+        if os.path.isfile(".data_files/.sa_login.json"):
+            with open(".data_files/.sa_login.json") as sa_json:
                 self.sa_login_details = json.load(sa_json)
         self.sa_change_details_flag = "new"
 
@@ -129,8 +132,18 @@ class MainWindow(ttk.Frame):
         #  Deletes frames when coming from a 'Back' button
         if origin == "myallocator":
             self.ma_form_frame.grid_forget()
+            try:
+                self.sa_form_frame.grid_forget()
+                self.calculate_frame.grid_forget()
+            except AttributeError:
+                pass  # does not exist yet
         if origin == "upload bookings":
             self.browse_files_frame.grid_forget()
+            try:
+                self.sa_form_frame.grid_forget()
+                self.calculate_frame.grid_forget()
+            except AttributeError:
+                pass  # does not exist yet
         if origin == "hostelworld":
             self.hw_form_frame.grid_forget()
             self.sa_form_frame.grid_forget()
@@ -201,8 +214,8 @@ class MainWindow(ttk.Frame):
             self.ma_password_entry.configure(state=tk.DISABLED)
         else:
             self.ma_username_entry.focus()
+            self.ma_save_login_btn.grid(row=5, column=1, pady=2, sticky=tk.E)
             self.ma_back_btn.grid(row=5, column=2, pady=2, sticky=tk.E)
-            self.ma_save_login_btn.grid(row=5, column=1, padx=10, pady=2, sticky=tk.E)
 
     def ma_change_details(self):
         self.parent.update()
@@ -217,6 +230,9 @@ class MainWindow(ttk.Frame):
 
     def check_ma_credential(self, call_origin):
         self.parent.update()
+        self.ma_get_properties_btn.configure(state=tk.DISABLED)
+        self.ma_change_detials_btn.configure(state=tk.DISABLED)
+        self.ma_save_login_btn.configure(state=tk.DISABLED)
         self.warning_lbl_style.configure('Warning.TLabel', foreground='green')
         self.ma_warning_var.set("Trying to log into MyAllocator...")
         ma_cred_thread = threading.Thread(
@@ -250,7 +266,7 @@ class MainWindow(ttk.Frame):
             self.ma_get_properties_btn.configure(state=tk.ACTIVE)
             self.ma_username_entry.configure(state=tk.DISABLED)
             self.ma_password_entry.configure(state=tk.DISABLED)
-            with open("data_files/.ma_login.json", "w", encoding='utf-8') as outfile:
+            with open(".data_files/.ma_login.json", "w", encoding='utf-8') as outfile:
                 json.dump(self.ma_login_details, indent=4, sort_keys=True, fp=outfile)
             self.get_properties("good")
         elif status == "bad":
@@ -268,6 +284,7 @@ class MainWindow(ttk.Frame):
             self.ma_warning_var.set("Fetching property list from MyAllocator")
             self.ma_get_properties_btn.grid_forget()
             self.ma_change_detials_btn.grid_forget()
+            self.ma_back_btn.grid_forget()
             self.ma_username_entry.configure(state=tk.DISABLED)
             self.ma_password_entry.configure(state=tk.DISABLED)
             property_process = threading.Thread(target=myallocator.get_properties, args=[self.ma_login_details,
@@ -290,7 +307,7 @@ class MainWindow(ttk.Frame):
         self.ma_warning_var.set("")
         self.parent.update()
         self.ma_properties = dict()
-        with open("data_files/properties.json") as properties_file:
+        with open(".data_files/properties.json") as properties_file:
             self.ma_properties = json.load(properties_file)
 
             self.ma_properties_lbl = ttk.Label(self.ma_form_frame, text="Property: ")
@@ -305,7 +322,7 @@ class MainWindow(ttk.Frame):
 
             self.ma_properties_lbl.grid(row=7, column=0, padx=(0, 20), pady=2, sticky=tk.E)
             self.ma_properties_combobox.grid(row=7, column=1, padx=(0, 20), pady=2, sticky=tk.W)
-            self.ma_download_btn.grid(row=7, column=2, pady=2, sticky=tk.E)
+            self.ma_download_btn.grid(row=7, column=3, pady=2, sticky=tk.E)
             self.ma_properties_combobox.current(0)
             self.ma_properties_serparator.grid(row=10, column=0, columnspan=4, pady=2, sticky=tk.W+tk.E)
 
@@ -358,7 +375,7 @@ class MainWindow(ttk.Frame):
         except:
             pass
         self.channel_manager = self.channel_combobox.get()
-        if self.browse_files_lbl.get() != "":
+        if self.browse_files_lbl.get() != "" and self.channel_combobox.get() != "--Select Channel Manager--":
             self.setup_sa("file upload")
 
     def setup_hw(self):
@@ -487,10 +504,11 @@ class MainWindow(ttk.Frame):
             self.hw_save_details_btn.grid_forget()
             self.hw_back_btn.grid_forget()
             self.hw_change_details_btn.grid(row=6, column=1, pady=2, sticky=tk.W)
+            self.hw_back_btn.grid(row=6, column=2, pady=2, sticky=tk.W)
             self.hw_hostel_number_entry.configure(state=tk.DISABLED)
             self.hw_username_entry.configure(state=tk.DISABLED)
             self.hw_password_entry.configure(state=tk.DISABLED)
-            with open("data_files/.hw_login.json", 'w', encoding='utf-8') as outfile:
+            with open(".data_files/.hw_login.json", 'w', encoding='utf-8') as outfile:
                 json.dump(self.hw_login_details, indent=4, sort_keys=True, fp=outfile)
                 self.setup_sa("hostelworld")
         elif status == "bad":
@@ -548,7 +566,7 @@ class MainWindow(ttk.Frame):
             self.download_bar.grid(row=8, column=1, pady=2, sticky=tk.W+tk.E)
             self.download_lbl_var = tk.StringVar()
             self.download_lbl = ttk.Label(self.ma_form_frame, textvariable=self.download_lbl_var)
-            self.download_lbl.grid(row=8, column=2, pady=2, sticky=tk.E)
+            self.download_lbl.grid(row=8, column=3, pady=2, sticky=tk.E)
             self.download_lbl_var.set("Downloading...")
             self.parent.after(100, self.load_bar)
             self.setup_sa("myallocator")
@@ -558,9 +576,6 @@ class MainWindow(ttk.Frame):
             self.ma_properties_warn_var.set("Please choose a property first.")
 
     def setup_sa(self, origin, sa_property="Upload Bookings"):
-        if origin == "file upload":
-            self.browse_files_btn.configure(state=tk.DISABLED)
-            self.browse_back_btn.grid_forget()
         if origin == "myallocator":
             self.sa_property = self.ma_properties_combobox.get()
         else:
@@ -582,19 +597,19 @@ class MainWindow(ttk.Frame):
         self.sa_password_entry = ttk.Entry(self.sa_form_frame, show=bullet, width=self.field_width,
                                            textvariable=self.sa_password_var)
         self.sa_password_entry.bind("<Return>", self.save_sa_login)
-        self.sa_user_id_combobox = ttk.Combobox(self.sa_form_frame, state="readonly", values=list(
-            user_id for user_id in self.sa_login_details.keys() if "User ID" in user_id))
+        self.sa_user_id_options = [user_id for user_id in self.sa_login_details.keys() if "User ID" in user_id]
+        self.sa_user_id_combobox = ttk.Combobox(self.sa_form_frame, state="readonly", values=self.sa_user_id_options)
         self.sa_user_id_combobox.bind("<<ComboboxSelected>>", self.load_from_combobox)
         self.sa_save_login_btn = ttk.Button(self.sa_form_frame, text="Save login details",
                                             command=lambda: self.save_sa_login(None))
         self.sa_save_login_tooltip = TT.ToolTip(self.sa_save_login_btn, "Save your Statistik Amt login info for future"
                                                                         " use")
         self.sa_change_details_btn = ttk.Button(self.sa_form_frame, text="Change password",
-                                                command=lambda: self.change_sa_login(origin))
+                                                command=lambda: self.change_sa_login(origin, self.sa_property))
         self.sa_change_details_tooltip = TT.ToolTip(self.sa_change_details_btn, "Change your saved Statistik Amt "
                                                                                 " password for this User ID.")
         self.sa_add_login_details_btn = ttk.Button(self.sa_form_frame, text="Add login details",
-                                                   command=lambda: self.change_sa_login(origin, "new"))
+                                                   command=lambda: self.change_sa_login(origin, "", "new"))
         self.sa_add_login_details_tooltip = TT.ToolTip(self.sa_add_login_details_btn, "Add a new login User ID and "
                                                                                       "password for the Statistik Amt")
         self.sa_warning_var = tk.StringVar()
@@ -629,8 +644,11 @@ class MainWindow(ttk.Frame):
         if self.sa_property == "Upload Bookings":
             if len(list(user_id for user_id in self.sa_login_details.keys() if "User ID" in user_id)) == 0:
                 self.sa_user_id_entry.grid(row=2, column=1, columnspan=3, pady=2, sticky=tk.W+tk.E)
+                self.sa_user_id_entry.focus()
+                self.sa_save_login_btn.grid(row=5, column=3, pady=2, sticky=tk.E)
             else:
                 self.sa_user_id_combobox.grid(row=2, column=1, columnspan=3, pady=2, sticky=tk.W+tk.E)
+                self.sa_add_login_details_btn.grid(row=5, column=3, sticky=tk.E, pady=2)
                 origin = "file upload"
         else:
             self.sa_user_id_entry.grid(row=2, column=1, columnspan=3, pady=2, sticky=tk.W+tk.E)
@@ -639,10 +657,11 @@ class MainWindow(ttk.Frame):
         self.sa_password_entry.grid(row=3, column=1, columnspan=3, pady=2, sticky=tk.W+tk.E)
         self.bundesland_combobox_lbl.grid(row=4, column=0, padx=(0, 20), pady=2, sticky=tk.E)
         self.bundesland_combobox.grid(row=4, column=1, columnspan=3, pady=2, sticky=tk.W)
+        self.sa_warning_lbl.grid(row=5, column=1, pady=2, sticky=tk.W)
         self.bundesland_combobox.current(0)
         if self.sa_login_details.get(self.sa_property, {}).get("sa_user_id", "") == "":
-            self.sa_warning_lbl.grid(row=5, column=1, pady=2, sticky=tk.W)
-            self.sa_save_login_btn.grid(row=5, column=3, pady=2, sticky=tk.E)
+            if self.sa_property != "Upload Bookings":
+                self.sa_save_login_btn.grid(row=5, column=3, pady=2, sticky=tk.E)
         else:
             self.sa_user_id_var.set(self.sa_login_details[self.sa_property]["sa_user_id"])
             self.sa_password_var.set(self.sa_login_details[self.sa_property]["sa_password"])
@@ -666,7 +685,7 @@ class MainWindow(ttk.Frame):
         self.sa_calculate_separator.grid(row=3, column=0, columnspan=4, padx=20, pady=2, sticky=tk.W+tk.E)
 
     def load_from_combobox(self, event):
-        self.sa_password_var.set(self.sa_login_details[self.sa_user_id_combobox.get()]["sa_user_id"])
+        self.sa_password_var.set(self.sa_login_details[self.sa_user_id_combobox.get()]["sa_password"])
         self.bundesland_combobox.current(
             combobox_dicts.bundeslaende[self.sa_login_details[self.sa_user_id_combobox.get()]["bundesland"]][1]
         )
@@ -674,7 +693,6 @@ class MainWindow(ttk.Frame):
         self.sa_add_login_details_btn.grid(row=5, column=2, sticky=tk.E, pady=2)
         self.sa_change_details_btn.grid(row=5, column=3, sticky=tk.E, padx=(5, 0), pady=2)
         self.sa_save_login_btn.grid_forget()
-        self.sa_user_id_combobox.configure(state=tk.DISABLED)
         self.sa_password_entry.configure(state=tk.DISABLED)
         self.bundesland_combobox.configure(state=tk.DISABLED)
 
@@ -741,7 +759,6 @@ class MainWindow(ttk.Frame):
                             # TODO add message for too many IDs
                 #  create new dict entry if does not exist yet
                 elif self.sa_login_details.get(self.sa_property, {}).get("sa_user_id", "") == "":
-                    print("hello")
                     self.sa_login_details[self.sa_property] = {}
                     self.sa_login_details[self.sa_property]["sa_user_id"] = self.sa_user_id
                     self.sa_login_details[self.sa_property]["sa_password"] = self.sa_password
@@ -749,11 +766,9 @@ class MainWindow(ttk.Frame):
                     self.sa_login_details[self.sa_property]["beds"] = 0
                 # otherwise just update the dict entry
                 else:
-                    print("wrong")
                     self.sa_login_details[self.sa_property]["sa_user_id"] = self.sa_user_id
                     self.sa_login_details[self.sa_property]["sa_password"] = self.sa_password
                     self.sa_login_details[self.sa_property]["bundesland"] = self.bundesland
-
                 self.check_sa_credential("sa save details {}".format(self.sa_change_details_flag), self.sa_property)
             else:
                 self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
@@ -763,7 +778,7 @@ class MainWindow(ttk.Frame):
             self.sa_warning_var.set("One or more fields empty!")
 
     def sa_credential_ok(self, status):
-        self.parent.update()
+        self.parent.update_idletasks()
         if status == "good":
             self.warning_lbl_style.configure('Warning.TLabel', foreground='green')
             self.sa_warning_var.set("Login successful!")
@@ -772,7 +787,7 @@ class MainWindow(ttk.Frame):
             self.sa_user_id_entry.configure(state=tk.DISABLED)
             self.sa_password_entry.configure(state=tk.DISABLED)
             self.bundesland_combobox.configure(state=tk.DISABLED)
-            with open("data_files/.sa_login.json", 'w', encoding="utf-8") as outfile:
+            with open(".data_files/.sa_login.json", 'w', encoding="utf-8") as outfile:
                     json.dump(self.sa_login_details, indent=4, sort_keys=True, fp=outfile)
         elif status == "failed":
             self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
@@ -796,11 +811,14 @@ class MainWindow(ttk.Frame):
             self.sa_password_var.set("")
             self.sa_password_entry.focus()
 
-    def change_sa_login(self, origin, flag="update"):
-        self.parent.update()
+    def change_sa_login(self, origin, sa_property, flag="update"):
+        self.parent.update_idletasks()
         self.sa_change_details_flag = flag
-        if origin == "file upload":
+        if origin == "file upload" and flag == "update":
+            self.sa_user_id_options = [user_id for user_id in self.sa_login_details.keys() if "User ID" in user_id]
+            self.sa_user_id_combobox['values'] = self.sa_user_id_options
             self.sa_user_id_combobox.grid(row=2, column=1, columnspan=3, sticky=tk.W+tk.E, pady=2)
+            self.sa_user_id_combobox.current(self.sa_user_id_options.index(sa_property))
         self.sa_password_var.set("")
         self.sa_password_entry.configure(state=tk.ACTIVE)
         self.sa_password_entry.focus()
@@ -816,6 +834,12 @@ class MainWindow(ttk.Frame):
 
     def calculate_statistics(self, hw_bookings_downloaded=False):
         self.parent.update()
+        self.sa_change_details_btn.configure(state=tk.DISABLED)
+        self.sa_add_login_details_btn.configure(state=tk.DISABLED)
+        try:
+            self.browse_back_btn.configure(state=tk.DISABLED)
+        except AttributeError:
+            pass  # does not exist
         self.sa_warning_var.set("")
         self.statistics_results = None  # resets results if doing multiple calculations
         self.today_date = datetime.strptime(str(datetime.now())[:7], "%Y-%m")
@@ -840,6 +864,8 @@ class MainWindow(ttk.Frame):
         if not save_button_visible:
             if self.channel_manager == "Hostel World":
                 if not hw_bookings_downloaded:
+                    self.hw_change_details_btn.configure(state=tk.DISABLED)
+                    self.hw_back_btn.configure(state=tk.DISABLED)
                     test_thread = threading.Thread(target=self.check_hw_credential,
                                                    args=["calculate stats"])
                     test_thread.daemon = True
@@ -975,7 +1001,7 @@ class MainWindow(ttk.Frame):
             self.sa_login_details[self.sa_property]["beds"] = self.beds
             try:
                 if int(self.beds) > 0:
-                    with open("data_files/.sa_login.json", 'w', encoding='utf-8') as outfile:
+                    with open(".data_files/.sa_login.json", 'w', encoding='utf-8') as outfile:
                         json.dump(self.sa_login_details, indent=4, sort_keys=True, fp=outfile)
 
                         send_stats_thread = threading.Thread(
@@ -998,7 +1024,9 @@ class MainWindow(ttk.Frame):
                         self.send_sa_yes_btn = ttk.Button(self.send_sa_progress_frame, text="Yes",
                                                           command=lambda: self.send_statistics("good", True))
                         self.send_sa_no_btn = ttk.Button(self.send_sa_progress_frame, text="No",
-                                                         command=lambda: self.send_sa_progress_var.set("Program stopped.")) # TODO make better
+                                                         command=self.finish)
+                        self.send_sa_finish_btn = ttk.Button(self.send_sa_progress_frame, text="Finish",
+                                                             command=self.finish)
                         self.send_sa_separator = ttk.Separator(self.send_sa_progress_frame, orient="horizontal")
 
                         self.send_sa_progress_frame.grid(row=6, column=0, padx=20, sticky=tk.W+tk.E)
@@ -1022,11 +1050,12 @@ class MainWindow(ttk.Frame):
             self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
             self.sa_options_warning_var.set("Details incorrect, could not sign in")
             self.sa_password_entry.configure(state=tk.ACTIVE)
+            self.sa_change_details_btn.configure(state=tk.ACTIVE)
             self.bundesland_combobox.configure(state="readonly")
             self.sa_password_var.set("")
             self.sa_password_entry.focus()
             self.sa_change_details_btn.grid_forget()
-            self.sa_save_login_btn.grid(row=5, column=3, pad=2, sticky=tk.E)
+            self.sa_save_login_btn.grid(row=5, column=3, pady=2, sticky=tk.E)
             self.calculate_btn.configure(state=tk.ACTIVE)
             self.calculate_warning_var.set("")
             self.calculate_progress_lbl.grid_forget()
@@ -1036,6 +1065,21 @@ class MainWindow(ttk.Frame):
             self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
             self.sa_options_warning_var.set("Statistics Amt website timed out and could not be reached, please try "
                                             "again later.")
+
+    def finish(self):
+        try:
+            self.ma_form_frame.grid_forget()
+        except AttributeError:
+            try:
+                self.hw_form_frame.grid_forget()
+            except AttributeError:
+                self.browse_files_frame.grid_forget()
+        finally:
+            self.calculate_frame.grid_forget()
+            self.sa_form_frame.grid_forget()
+            self.sa_options_frame.grid_forget()
+            self.send_sa_progress_frame.grid_forget()
+            self.upload_style("init")
 
     def load_bar(self):
         try:
@@ -1059,7 +1103,6 @@ class MainWindow(ttk.Frame):
     def check_ma_cred_queue(self):
         try:
             message = self.ma_cred_queue.get(0)
-            print(message)
             if message == "ma ok ma save details":
                 self.ma_credential_ok("good")
             elif message == "ma not ok ma save details":
@@ -1077,7 +1120,6 @@ class MainWindow(ttk.Frame):
     def check_get_properties_queue(self):
         try:
             message = self.get_properties_queue.get(0)
-            print(message)
             if message == "Finished":
                 self.load_properties()
         except queue.Empty:
@@ -1086,7 +1128,6 @@ class MainWindow(ttk.Frame):
     def check_hw_cred_queue(self):
         try:
             message = self.hw_cred_queue.get(0)
-            print(message)
             if message == "hw ok hw save details":
                 self.hw_credential_ok("good")
             elif message == "hw not ok hw save details":
@@ -1127,7 +1168,6 @@ class MainWindow(ttk.Frame):
     def check_sa_cred_queue(self):
         try:
             message = self.sa_cred_queue.get(0)
-            print(message)
             if message == "sa ok sa save details update" or message == "sa ok sa save details new":
                 self.sa_credential_ok("good")
                 self.parent.after(100, self.check_sa_cred_queue)
@@ -1193,6 +1233,7 @@ class MainWindow(ttk.Frame):
                 self.send_sa_progress_var.set("Statistics for {} successfully sent!".format(message[1]))
                 import display_results
                 display_results.ResultsWindow(self, message[2], message[1])
+                self.send_sa_finish_btn.grid(row=2, column=0, pady=2, sticky=tk.W)
             elif message == "no date":
                 self.send_sa_progress_bar.grid_forget()
                 self.send_sa_progress_lbl.configure(foreground='red')

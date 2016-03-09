@@ -1,21 +1,16 @@
 import re
-import os
 import csv
-import json
 import datetime
 import calendar
 import mechanicalsoup
 import requests.exceptions
 from selenium import webdriver
 from selenium.common import exceptions
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 
 
 def check_cred(login_details, hw_cred_queue, call_origin):
-    driver = webdriver.PhantomJS(executable_path="phantomjs/bin/phantomjs")
+    driver = webdriver.PhantomJS(executable_path=".phantomjs/bin/phantomjs")
     driver.set_window_size(1920, 1080)
     # driver = webdriver.Firefox()
     driver.set_page_load_timeout(15)
@@ -68,10 +63,10 @@ def get_bookings(login_details, month_chosen, hw_bookings_queue):
     try:
         login_page = browser.get('https://inbox.hostelworld.com/inbox/', timeout=15)
     except requests.exceptions.Timeout:
-        print("Timeout")
+        hw_bookings_queue.put("Hostel World site timed out, please try again later.")
         return
     except requests.exceptions.ConnectionError:
-        print("Connection Error")
+        hw_bookings_queue.put("Could not connect to internet, please check your internet connection and try again.")
         return
 
     login_form = login_page.soup.form
@@ -81,9 +76,9 @@ def get_bookings(login_details, month_chosen, hw_bookings_queue):
 
     home_page = browser.submit(login_form, login_page.url)
 
-    bookings_page = browser.get("https://inbox.hostelworld.com/booking/search/date?DateType=arrivaldate&dateFrom={}&dateTo={}".format(
-        datetime.datetime.strftime(start_date, "%Y-%m-%d"), datetime.datetime.strftime(end_date, "%Y-%m-%d")
-    ))
+    bookings_page = browser.get(
+        "https://inbox.hostelworld.com/booking/search/date?DateType=arrivaldate&dateFrom={}&dateTo={}".format(
+            datetime.datetime.strftime(start_date, "%Y-%m-%d"), datetime.datetime.strftime(end_date, "%Y-%m-%d")))
     hw_bookings_queue.put(5)
     bar_total += 5
 

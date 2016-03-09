@@ -49,7 +49,7 @@ def get_properties(login_details, get_properties_queue):
     for tag in property_tags:
         properties[tag.text] = [tag.get("href")]
 
-    with open("data_files/properties.json", "w") as outfile:
+    with open(".data_files/properties.json", "w") as outfile:
         json.dump(properties, indent=4, sort_keys=True, fp=outfile)
     get_properties_queue.put("Finished")
 

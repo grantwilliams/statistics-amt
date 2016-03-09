@@ -79,7 +79,7 @@ channel_managers = {
 
 def calculate(month, year, filename, progress_queue, channel):
     statistics = copy.deepcopy(statistics_results)
-    csv_column = copy.deepcopy(channel_managers[channel])
+    csv_column = copy.deepcopy(channel_managers[channel.strip()])
 
     if sys.platform == "win32":
         locale.setlocale(locale.LC_TIME, "deu_deu")
