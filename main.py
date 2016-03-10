@@ -478,7 +478,10 @@ class MainWindow(ttk.Frame):
 
     def save_hw_login(self, event):
         self.parent.update()
-        self.calculate_warning_var.set("")
+        try:
+            self.calculate_warning_var.set("")
+        except AttributeError:
+            pass  # does not exist yet
         self.hw_hostel_number = self.hw_hostel_number_entry.get()
         self.hw_username = self.hw_username_entry.get()
         self.hw_password = self.hw_password_entry.get()
