@@ -35,8 +35,9 @@ class MainWindow(ttk.Frame):
             warning_fs = "-size 8"
             upload_button_font = "-size 14"
             self.field_width = 40
-            os.popen("attrib +h .images").close()
             os.popen("attrib +h .data_files").close()
+            os.popen("attrib +h .icons").close()
+            os.popen("attrib +h .images").close()
             os.popen("attrib +h .phantomjs").close()
         else:
             locale.setlocale(locale.LC_TIME, "de_DE")
@@ -1256,6 +1257,11 @@ class MainWindow(ttk.Frame):
 def main():
     root = tk.Tk()
     root.wm_title("Statistik Rechner")
+    if sys.platform == "win32":
+        root.wm_iconbitmap(default=".icons/statistik-rechner-red.ico")
+    else:
+        root.iconbitmap(".icons/statistik-rechner-black.icns")
+    root.resizable(0, 0)
     app = MainWindow(root)
     root.mainloop()
 
