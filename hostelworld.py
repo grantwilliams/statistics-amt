@@ -4,70 +4,49 @@ import datetime
 import calendar
 import mechanicalsoup
 import requests.exceptions
-from selenium import webdriver
-from selenium.common import exceptions
-from bs4 import BeautifulSoup
 
 
 def check_cred(login_details, hw_cred_queue, call_origin):
-    driver = webdriver.PhantomJS(executable_path=".phantomjs/bin/phantomjs")
-    driver.set_window_size(1920, 1080)
-    # driver = webdriver.Firefox()
-    driver.set_page_load_timeout(15)
-
+    browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
     try:
-        driver.get("https://inbox.hostelworld.com/inbox/")
-    except exceptions.TimeoutException:
+        login_page = browser.get('https://inbox.hostelworld.com/inbox/', timeout=15)
+    except requests.exceptions.Timeout:
         hw_cred_queue.put("hw page timeout {}".format(call_origin))
         return
-
-    hostel_number = driver.find_element_by_id("HostelNumber")
-    hostel_number.send_keys(login_details["hostel number"])
-    username = driver.find_element_by_id("Username")
-    username.send_keys(login_details["username"])
-    password = driver.find_element_by_id("Password")
-    password.send_keys(login_details["password"])
-    password.submit()
-
-    try:
-        driver.find_element_by_id("hostelInboxTopSection")
-    except exceptions.NoSuchElementException:
-        hw_cred_queue.put("hw not ok {}".format(call_origin))
+    except requests.exceptions.ConnectionError:
+        hw_cred_queue.put("Could not connect to internet, please check your internet connection and try again.")
         return
-    except exceptions.ElementNotVisibleException:
+
+    login_form = login_page.soup.form
+    login_form.find("input", {"id": "HostelNumber"})['value'] = login_details["hostel number"]
+    login_form.find("input", {"id": "Username"})['value'] = login_details["username"]
+    login_form.find("input", {"id": "Password"})['value'] = login_details["password"]
+
+    home_page = browser.submit(login_form, login_page.url)
+
+    if len(home_page.soup.find_all("div", {"id": "loginInfo"})) < 1:
         hw_cred_queue.put("hw not ok {}".format(call_origin))
         return
     else:
-        html = driver.page_source
-        soup = BeautifulSoup(html, "html.parser")
-
-        password_expire = soup.find_all("div", {"class": "message-password-expire"})
+        password_expire = home_page.soup.find_all("div", {"class": "message-password-expire"})
 
         if len(password_expire) > 0:
             pass_expire_in = re.findall(r'\d+', password_expire[0].text)
             hw_cred_queue.put(["hw pass expire {}".format(call_origin), pass_expire_in[0]])
         else:
             hw_cred_queue.put("hw ok {}".format(call_origin))
-    driver.quit()
 
 
 def get_bookings(login_details, month_chosen, hw_bookings_queue):
     start_date = month_chosen
     end_date = month_chosen.replace(day=calendar.monthrange(month_chosen.year, month_chosen.month)[1])
-    print(start_date, end_date)
     bar_total = 0
     hw_bookings_queue.put("Downloading your bookings for Hostel World first, this may take a while.")
     browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
     hw_bookings_queue.put(5)
     bar_total += 5
-    try:
-        login_page = browser.get('https://inbox.hostelworld.com/inbox/', timeout=15)
-    except requests.exceptions.Timeout:
-        hw_bookings_queue.put("Hostel World site timed out, please try again later.")
-        return
-    except requests.exceptions.ConnectionError:
-        hw_bookings_queue.put("Could not connect to internet, please check your internet connection and try again.")
-        return
+
+    login_page = browser.get('https://inbox.hostelworld.com/inbox/', timeout=15)
 
     login_form = login_page.soup.form
     login_form.find("input", {"id": "HostelNumber"})['value'] = login_details["hostel number"]

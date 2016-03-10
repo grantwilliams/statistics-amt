@@ -44,6 +44,8 @@ class MainWindow(ttk.Frame):
             warning_fs = "-size 10"
             upload_button_font = "-size 16"
             self.field_width = 30
+            self.theme = ttk.Style()
+            self.theme.map("TButton", background=[('disabled', '#FFFFFF')])
 
         self.bookings_file = ""
         self.channel_manager = "--Select Channel Manager--"
@@ -101,11 +103,15 @@ class MainWindow(ttk.Frame):
         self.title_frame.columnconfigure(0, weight=1)
         self.title_frame.grid(row=0, column=0)
 
-        title_png = Image.open(".images/title_img.png")
-        title_photo = ImageTk.PhotoImage(title_png)
+        if sys.platform == 'win32':
+            title_png = Image.open(".images/title_img.png")
+            title_photo = ImageTk.PhotoImage(title_png)
+        else:
+            title_png = Image.open(".images/mac-title.png")
+            title_photo = ImageTk.PhotoImage(title_png)
         self.title = ttk.Label(self.title_frame, image=title_photo)
         self.title.image = title_photo
-        self.title.grid(row=0, column=0, sticky=tk.W+tk.E, padx=20, pady=10)
+        self.title.grid(row=0, column=0, sticky=tk.W+tk.E, padx=20)
         self.upload_style()
 
     def upload_style(self, origin="init"):
@@ -133,22 +139,15 @@ class MainWindow(ttk.Frame):
         #  Deletes frames when coming from a 'Back' button
         if origin == "myallocator":
             self.ma_form_frame.grid_forget()
-            try:
-                self.sa_form_frame.grid_forget()
-                self.calculate_frame.grid_forget()
-            except AttributeError:
-                pass  # does not exist yet
         if origin == "upload bookings":
             self.browse_files_frame.grid_forget()
-            try:
-                self.sa_form_frame.grid_forget()
-                self.calculate_frame.grid_forget()
-            except AttributeError:
-                pass  # does not exist yet
         if origin == "hostelworld":
             self.hw_form_frame.grid_forget()
+        try:
             self.sa_form_frame.grid_forget()
             self.calculate_frame.grid_forget()
+        except AttributeError:
+            pass # does not exist yet
 
         #  Pack Upload Style widgets
         self.upload_style_frame.grid(row=1, column=0, padx=20, sticky=tk.W+tk.E)
@@ -318,8 +317,8 @@ class MainWindow(ttk.Frame):
                                               command=self.ma_download_bookings)
             self.ma_properties_serparator = ttk.Separator(self.ma_form_frame, orient="horizontal")
             self.ma_properties_warn_var = tk.StringVar()
-            self.ma_properties_warn_lbl = ttk.Label(self.ma_form_frame, style="Warning.TLabel",
-                                                    textvariable=self.ma_properties_warn_var)
+            self.ma_properties_warn_lbl = ttk.Label(self.ma_form_frame, wraplength=self.winfo_width() * 0.35,
+                                                    style="Warning.TLabel", textvariable=self.ma_properties_warn_var)
 
             self.ma_properties_lbl.grid(row=7, column=0, padx=(0, 20), pady=2, sticky=tk.E)
             self.ma_properties_combobox.grid(row=7, column=1, padx=(0, 20), pady=2, sticky=tk.W)
@@ -479,6 +478,7 @@ class MainWindow(ttk.Frame):
 
     def save_hw_login(self, event):
         self.parent.update()
+        self.calculate_warning_var.set("")
         self.hw_hostel_number = self.hw_hostel_number_entry.get()
         self.hw_username = self.hw_username_entry.get()
         self.hw_password = self.hw_password_entry.get()
@@ -522,6 +522,9 @@ class MainWindow(ttk.Frame):
             self.hw_username_var.set("")
             self.hw_password_var.set("")
             self.hw_hostel_number_entry.focus()
+        elif status == "failed":
+            self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
+            self.hw_warning_var.set("Hostel World site timed out, please try again later.")
 
     def hw_get_bookings(self, status):
         if "good" in status:
@@ -546,6 +549,22 @@ class MainWindow(ttk.Frame):
             self.hw_download_lbl.grid(row=1, column=3, sticky=tk.E, padx=20)
             self.hw_download_lbl_var.set("Downloading Bookings...")
             self.parent.after(100, self.check_hw_download_queue())
+        elif status == "bad":
+            self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
+            self.calculate_warning_var.set("Details incorrect, could not sign in.")
+            self.hw_hostel_number_entry.configure(state=tk.ACTIVE)
+            self.hw_username_entry.configure(state=tk.ACTIVE)
+            self.hw_password_entry.configure(state=tk.ACTIVE)
+            self.hw_hostel_number_var.set("")
+            self.hw_username_var.set("")
+            self.hw_password_var.set("")
+            self.hw_hostel_number_entry.focus()
+            self.hw_change_details_btn.grid_forget()
+            self.hw_save_details_btn.grid(row=6, column=1, pady=2, sticky=tk.W)
+        elif status == "failed":
+            self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
+            self.calculate_warning_var.set("Hostel World site timed out, please try again later.")
+
 
     def ma_download_bookings(self):
         self.parent.update()
@@ -864,6 +883,7 @@ class MainWindow(ttk.Frame):
 
         if not save_button_visible:
             if self.channel_manager == "Hostel World":
+                self.hw_warning_var.set("")
                 if not hw_bookings_downloaded:
                     self.hw_change_details_btn.configure(state=tk.DISABLED)
                     self.hw_back_btn.configure(state=tk.DISABLED)
@@ -1071,16 +1091,20 @@ class MainWindow(ttk.Frame):
         try:
             self.ma_form_frame.grid_forget()
         except AttributeError:
-            try:
-                self.hw_form_frame.grid_forget()
-            except AttributeError:
-                self.browse_files_frame.grid_forget()
-        finally:
-            self.calculate_frame.grid_forget()
-            self.sa_form_frame.grid_forget()
-            self.sa_options_frame.grid_forget()
-            self.send_sa_progress_frame.grid_forget()
-            self.upload_style("init")
+            pass
+        try:
+            self.hw_form_frame.grid_forget()
+        except AttributeError:
+            pass
+        try:
+            self.browse_files_frame.grid_forget()
+        except AttributeError:
+            pass
+        self.calculate_frame.grid_forget()
+        self.sa_form_frame.grid_forget()
+        self.sa_options_frame.grid_forget()
+        self.send_sa_progress_frame.grid_forget()
+        self.upload_style("init")
 
     def load_bar(self):
         try:
@@ -1095,6 +1119,11 @@ class MainWindow(ttk.Frame):
                 self.ma_properties_warn_lbl.grid(row=9, column=1, columnspan=2, sticky=tk.W)
                 self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
                 self.ma_properties_warn_var.set("MyAllocator website timed out, please try again later")
+            elif message == "connection lost":
+                self.ma_properties_warn_lbl.grid(row=9, column=1, columnspan=2, sticky=tk.W)
+                self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
+                self.ma_properties_warn_var.set("Connection was lost while downloading, please check your internet "
+                                                "connection and try again.")
             else:
                 self.download_bar.step(message)
                 self.parent.after(100, self.load_bar)
@@ -1145,6 +1174,8 @@ class MainWindow(ttk.Frame):
                 self.hw_get_bookings("failed")
             elif message[0] == "hw pass expire calculate stats":
                 self.hw_get_bookings("good pass expire {}".format(message[1]))
+            else:
+                self.hw_warning_var.set(message)
         except queue.Empty:
             self.parent.after(100, self.check_hw_cred_queue)
 
@@ -1227,13 +1258,19 @@ class MainWindow(ttk.Frame):
                                               "them again?")
                 self.send_sa_yes_btn.grid(row=2, column=0, pady=2, sticky=tk.W)
                 self.send_sa_no_btn.grid(row=2, column=1, pady=2, sticky=tk.W)
+            elif message == "assertion error":
+                self.send_sa_progress_lbl.configure(foreground='red')
+                self.send_sa_progress_var.set("Sorry! Something went wrong and the statistics could not be entered "
+                                              "correctly, please check the options above and try again.")
+                self.send_to_sa_btn.configure(state=tk.ACTIVE)
             elif isinstance(message, int):
                 self.send_sa_progress_bar.step(message)
                 self.parent.after(10, self.process_sa_send_queue)
             elif isinstance(message, list):
-                self.send_sa_progress_var.set("Statistics for {} successfully sent!".format(message[1]))
+                self.send_sa_progress_var.set("Statistics for {} successfully sent! Identnummer: {} (bei Rückfragen "
+                                              "bitte angeben)".format(message[1], message[3]))
                 import display_results
-                display_results.ResultsWindow(self, message[2], message[1])
+                display_results.ResultsWindow(self, message[2], message[1], message[3])
                 self.send_sa_finish_btn.grid(row=2, column=0, pady=2, sticky=tk.W)
             elif message == "no date":
                 self.send_sa_progress_bar.grid_forget()
@@ -1259,8 +1296,6 @@ def main():
     root.wm_title("Statistik Rechner")
     if sys.platform == "win32":
         root.wm_iconbitmap(default=".icons/statistik-rechner-red.ico")
-    else:
-        root.iconbitmap(".icons/statistik-rechner-black.icns")
     root.resizable(0, 0)
     app = MainWindow(root)
     root.mainloop()

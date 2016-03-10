@@ -8,17 +8,15 @@ import tkinter.messagebox
 import pyscreenshot
 
 
-results = OrderedDict([('GERMANY', [4, 10]), ('BELGIUM', [5, 17]), ('BULGARIA', [0, 0]), ('DENMARK', [2, 4]), ('ESTONIA', [0, 0]), ('FINLAND', [0, 0]), ('FRANCE', [4, 17]), ('GREECE', [0, 0]), ('GREAT BRITAIN', [8, 23]), ('IRELAND', [2, 6]), ('ICELAND', [0, 0]), ('ITALY', [3, 9]), ('CROATIA', [0, 0]), ('LATVIA', [0, 0]), ('LITHUANIA', [0, 0]), ('LUXEMBOURG', [0, 0]), ('MALTA', [0, 0]), ('NETHERLANDS', [6, 12]), ('NORWAY', [0, 0]), ('AUSTRIA', [0, 0]), ('POLAND', [0, 0]), ('PORTUGAL', [0, 0]), ('ROMANIA', [0, 0]), ('RUSSIA', [0, 0]), ('SWEDEN', [3, 6]), ('SWITZERLAND', [4, 18]), ('SLOVAKIA', [0, 0]), ('SLOVENIA', [1, 4]), ('SPAIN', [0, 0]), ('CZECH REPUBLIC', [0, 0]), ('TURKEY', [0, 0]), ('UKRAINE', [0, 0]), ('HUNGARY', [0, 0]), ('CYPRUS', [0, 0]), ('OTHER EUROPE', [0, 0]), ('SOUTH AFRICA', [0, 0]), ('OTHER AFRICA', [0, 0]), ('CANADA', [5, 17]), ('USA', [16, 54]), ('MIDDLE AMERICA/CARIBBEAN', [0, 0]), ('BRAZIL', [0, 0]), ('OTHER SOUTH AMERICA', [4, 13]), ('OTHER NORTH AMERICA', [1, 2]), ('ARAB GULF', [0, 0]), ('CHINA/HONG KONG', [3, 6]), ('INDIA', [1, 2]), ('ISRAEL', [1, 3]), ('JAPAN', [0, 0]), ('SOUTH KOREA', [1, 3]), ('TAIWAN', [0, 0]), ('OTHER ASIA', [0, 0]), ('AUSTRALIA', [9, 33]), ('NEW ZEALAND', [1, 2]), ('INFO NOT GIVEN', [11, 32]), ('TOTAL', [95, 293])])
-
-
 class ResultsWindow(tk.Toplevel):
-    def __init__(self, parent, statistics_results, month):
+    def __init__(self, parent, statistics_results, month, ident_nummer):
         tk.Toplevel.__init__(self, parent)
         self.parent = parent
         self.sent_confirm_frame = None
         self.statistics_results = statistics_results
         self.month = month
-        self.display_results(self.statistics_results, self.month)
+        self.ident_nummer = ident_nummer
+        self.display_results(self.statistics_results, self.month, self.ident_nummer)
 
     def save_image(self, month):
         self.sent_confirm_frame.grid_forget()
@@ -35,7 +33,7 @@ class ResultsWindow(tk.Toplevel):
         if os.path.isfile(image_name):
             tk.messagebox.showinfo("Saved file", "Saved!\n{}".format(os.path.abspath(image_name)))
 
-    def display_results(self, statistics_results, month):
+    def display_results(self, statistics_results, month, ident_nummer):
         self.title("Statistics Results")
         title_style = ttk.Style()
         title_style.configure("Title.TLabel", font="-size 16 -weight bold", background="#98FB98")
@@ -194,12 +192,15 @@ class ResultsWindow(tk.Toplevel):
         total_nights = ttk.Label(results_frame, text=statistics_results["TOTAL"][1], font="-weight bold",
                                  background="#E9967A", anchor=tk.CENTER)
         month_lbl = ttk.Label(results_frame, style="Title.TLabel", text="Month: {}".format(month))
+        ident_nummber_lbl = ttk.Label(results_frame, style="Title.TLabel",
+                                      text="Identnummer: {}".format(ident_nummer))
         results_separator = ttk.Separator(results_frame, orient=tk.HORIZONTAL)
 
         total_header.grid(row=22, column=8, sticky=tk.W+tk.E)
         total_guests.grid(row=22, column=9, sticky=tk.W+tk.E)
         total_nights.grid(row=22, column=10, sticky=tk.W+tk.E)
         month_lbl.grid(row=23, column=0, columnspan=11, sticky=tk.W+tk.E)
+        ident_nummber_lbl.grid(row=23, column=8, sticky=tk.W+tk.E)
         results_separator.grid(row=24, column=0, columnspan=11, sticky=tk.W+tk.E)
 
         home = expanduser("~")
@@ -226,8 +227,3 @@ class ResultsWindow(tk.Toplevel):
         self.sent_confirm_frame.grid(row=1, column=0, sticky=tk.W+tk.E)
         sent_confirm_lbl.grid(row=1, column=0, sticky=tk.W+tk.E)
         save_image_btn.grid(row=2, column=0, columnspan=11, pady=5, sticky=tk.W)
-
-if __name__ == "__main__":
-    boot = tk.Tk()
-    app = ResultsWindow(boot, results, "Februar 2016")
-    boot.mainloop()

@@ -55,12 +55,6 @@ def get_properties(login_details, get_properties_queue):
 
 
 def download_bookings_csv(login_details, url, download_queue):
-    #  TODO Delete this before release
-    if os.path.isfile("bookings.csv"):
-        download_queue.put(99)
-        download_queue.put("Finished!")
-        download_queue.put("bookings.csv")
-        return
     browser = mechanicalsoup.Browser(soup_config={"features": "html.parser"})
     download_queue.put(20)
 
@@ -69,6 +63,9 @@ def download_bookings_csv(login_details, url, download_queue):
     except requests.exceptions.Timeout:
         download_queue.put("timed out")
         return
+    except requests.exceptions.ConnectionError:
+        download_queue.put("connections lost")
+        return
 
     login_form = login_page.soup.select('.login_box')[0].select('form')[0]
     download_queue.put(20)
@@ -76,6 +73,7 @@ def download_bookings_csv(login_details, url, download_queue):
     login_form.select('#Password')[0]['value'] = login_details["ma_password"]
     download_queue.put(20)
     browser.submit(login_form, login_page.url)
+
     download_queue.put(20)
     property_number = re.findall(r'\d+', url)
     browser.get('https://inbox.myallocator.com'.format(url))
@@ -86,8 +84,13 @@ def download_bookings_csv(login_details, url, download_queue):
         'filter': ''
     }
 
-    response = browser.post(
-        "https://inbox.myallocator.com/dispatch/csv_export/{}/bookings.csv".format(property_number[0]), csv_data)
+    try:
+        response = browser.post(
+            "https://inbox.myallocator.com/dispatch/csv_export/{}/bookings.csv".format(property_number[0]),
+            csv_data, timeout=300)
+    except requests.exceptions.Timeout:
+        download_queue.put("connection lost")
+        return
     download_queue.put(19)
     file_name = "bookings.csv"
     bookings = open(file_name, 'w', newline='', encoding='utf-8')
@@ -96,5 +99,3 @@ def download_bookings_csv(login_details, url, download_queue):
     download_queue.put("Finished!")
     download_queue.put(file_name)
     return
-    # except Exception:
-    #     download_queue.put(["exit", "Connection error, could not connect to internet"])

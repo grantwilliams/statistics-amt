@@ -10,7 +10,6 @@ from bs4 import BeautifulSoup
 def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
     driver = webdriver.PhantomJS(executable_path=".phantomjs/bin/phantomjs")
     driver.set_window_size(1920, 1080)
-    # driver = webdriver.Firefox()
     driver.set_page_load_timeout(15)
     try:
         driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
@@ -30,10 +29,17 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
     user_id.send_keys(login_details[ma_property]["sa_user_id"])
     password = driver.find_element_by_id("password")
     password.send_keys(login_details[ma_property]["sa_password"])
-    password.submit()
+    try:
+        password.submit()
+    except exceptions.TimeoutException:
+        sa_cred_queue.put("sa page timeout {}".format(call_origin))
+        return
 
     try:
-        driver.find_element_by_id("logoutButton")
+        WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, "logoutButton")))
+    except exceptions.TimeoutException:
+        sa_cred_queue.put("sa page timeout {}".format(call_origin))
+        return
     except exceptions.NoSuchElementException:
         sa_cred_queue.put(["sa not ok {}".format(call_origin), "{}".format(ma_property)])
         driver.quit()
@@ -58,12 +64,14 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
     driver.quit()
 
 
-def send(login_details, options_details, progress_queue, ma_property, statistics_results, already_sent_continue):
-    progress_queue.put("Openings virtual browser...")
+def send(login_details, options_details, progress_queue, ma_property, statistics_results, already_sent_continue,
+         tries=0):
     def stats_generator():
         for item in statistics_results.keys():
             yield [statistics_results[item][0], statistics_results[item][1]]
     statistics_generator = stats_generator()
+
+    tries = tries
 
     if options_details["open on"] == "..":
         open_on = ""
@@ -71,10 +79,10 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
         open_on = options_details["open on"]
     driver = webdriver.PhantomJS(executable_path=".phantomjs/bin/phantomjs")
     driver.set_window_size(1920, 1080)
-    # driver = webdriver.Firefox()
     driver.set_page_load_timeout(15)
-    progress_queue.put(10)
 
+    progress_queue.put("Openings virtual browser...")
+    progress_queue.put(10)
     try:
         driver.get("https://www.idev.nrw.de/idev/OnlineMeldung?inst=")
     except exceptions.TimeoutException:
@@ -106,7 +114,6 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     if len(BeautifulSoup(driver.page_source, "html.parser").find_all("div", {"id": "app_message"})) > 0:
         if not already_sent_continue:
             progress_queue.put("already sent")
-            driver.quit()
             driver.quit()
             return
     progress_queue.put(10)
@@ -164,11 +171,33 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     statistics_generator.close()
     progress_queue.put(5)
     try:
-        assert driver.find_element_by_name("ANK_Insgesamt").get_attribute('value') == str(statistics_results["TOTAL"][0])
-        assert driver.find_element_by_name("UEB_Insgesamt").get_attribute('value') == str(statistics_results["TOTAL"][1])
+        assert driver.find_element_by_name("ANK_Insgesamt").get_attribute('value') == str(
+            statistics_results["TOTAL"][0])
+        assert driver.find_element_by_name("UEB_Insgesamt").get_attribute('value') == str(
+            statistics_results["TOTAL"][1])
     except AssertionError:
+        if tries < 5:
+            driver.quit()
+            send(login_details, options_details, progress_queue, ma_property, statistics_results, already_sent_continue,
+                 tries+1)
+        else:
+            progress_queue.put("assertion error")
+            driver.quit()
+            return
+    driver.find_element_by_id("sendButton").click()
+
+    html = driver.page_source
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    if len(soup.find_all("div", {"class": "errorMessage"})) > 0:
         progress_queue.put("assertion error")
         driver.quit()
         return
-    progress_queue.put(["Finished", options_details["sub month"], statistics_results])
-    # driver.quit()
+
+    driver.find_element_by_id("confirmButton").click()
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+    ident_nummer = soup.find("span", {"id": "page_h_ctrl1"})
+    progress_queue.put(["Finished", options_details["sub month"], statistics_results, ident_nummer.text])
+    driver.quit()

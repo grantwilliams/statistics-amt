@@ -64,7 +64,6 @@ channel_managers = {
         "guests": 15,
         "date format": "%Y-%m-%d"
     },
-    # TEST
     "Hostel World": {
         "arrival date": 2,
         "nights": 4,
@@ -175,5 +174,4 @@ def calculate(month, year, filename, progress_queue, channel):
             progress_queue.put(4)
     progress_queue.put("Finished!")
     progress_queue.put([statistics, "{} {}".format(month, year)])
-    # os.remove(filename)  # TODO add this back
     return
