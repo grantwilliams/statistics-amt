@@ -95,8 +95,12 @@ def calculate(month, year, filename, progress_queue, channel):
         for row in bookings_csv_read:
             if errors[0] <= 20 and errors[1] <= 20:
                 booking_canceled = False
-                if row[csv_column["canceled"]] == csv_column["canceled answer"]:
-                    booking_canceled = True
+                try:
+                    if row[csv_column["canceled"]] == csv_column["canceled answer"]:
+                        booking_canceled = True
+                except IndexError:
+                    progress_queue.put("wrong csv/channel")
+                    return
                 try:
                     row_date = datetime.strptime(row[csv_column["arrival date"]].replace("st", '').replace("nd", '')
                                                  .replace("rd", '').replace("th", '').replace("'", ''),
@@ -140,10 +144,10 @@ def calculate(month, year, filename, progress_queue, channel):
                     pass  # skip if date doesn't match
                     errors[0] += 1
                 except IndexError:
-                    progress_queue.put("wrong csv")
+                    progress_queue.put("wrong csv/channel")
                     return
             else:
-                progress_queue.put("wrong channel")
+                progress_queue.put("wrong csv/channel")
                 return
         if queue_next != 55:
             progress_queue.put(55-queue_next)
