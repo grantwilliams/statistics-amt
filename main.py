@@ -183,6 +183,7 @@ class MainWindow(ttk.Frame):
         self.ma_password_entry.bind("<Return>", self.save_ma_login)
         self.ma_save_login_btn = ttk.Button(self.ma_form_frame, text="Save login details",
                                             command=lambda: self.save_ma_login(None))
+        self.ma_save_login_btn.configure(cursor=self.pointer)
         self.ma_save_tooltip = TT.ToolTip(self.ma_save_login_btn, "Save your MyAllocator login details for future use.")
         self.ma_get_properties_btn = ttk.Button(self.ma_form_frame, text="Get Properties",
                                                 command=lambda: self.check_ma_credential("get properties"))
