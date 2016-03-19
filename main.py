@@ -35,6 +35,7 @@ class MainWindow(ttk.Frame):
             warning_fs = "-size 8"
             upload_button_font = "-size 14"
             self.field_width = 40
+            self.pointer = "hand2"
             os.popen("attrib +h .data_files").close()
             os.popen("attrib +h .icons").close()
             os.popen("attrib +h .images").close()
@@ -44,6 +45,7 @@ class MainWindow(ttk.Frame):
             warning_fs = "-size 10"
             upload_button_font = "-size 16"
             self.field_width = 30
+            self.pointer = "pointinghand"
             self.theme = ttk.Style()
             self.theme.map("TButton", background=[('disabled', '#FFFFFF')])
 
@@ -124,16 +126,19 @@ class MainWindow(ttk.Frame):
         self.upload_style_separator = ttk.Separator(self.upload_style_frame, orient="horizontal")
         self.upload_myallocator_btn = ttk.Button(self.upload_style_frame,  style="Upload.TButton", text="MyAllocator",
                                                  command=self.setup_ma)
+        self.upload_myallocator_btn.configure(cursor=self.pointer)
         self.upload_myallocator_tooltip = TT.ToolTip(self.upload_myallocator_btn, "Provide MyAllocator login details "
                                                                                   "to be able to\ndownload all "
                                                                                   "bookings automatically.")
         self.upload_hostelworld_btn = ttk.Button(self.upload_style_frame, style="Upload.TButton", text="Hostel World",
                                                  command=self.setup_hw)
+        self.upload_hostelworld_btn.configure(cursor=self.pointer)
         self.upload_hostelworld_tooltip = TT.ToolTip(self.upload_hostelworld_btn, "Provide Hostel World login details "
                                                                                   "to be able to\ndownload bookings "
                                                                                   "automatically.")
         self.upload_file_btn = ttk.Button(self.upload_style_frame, style="Upload.TButton", text="From file",
                                           command=self.upload_bookings)
+        self.upload_file_btn.configure(cursor=self.pointer)
         self.upload_file_tooltip = TT.ToolTip(self.upload_file_btn, "Upload a 'csv' file of your bookings from your "
                                                                     "computer")
         #  Deletes frames when coming from a 'Back' button
@@ -181,14 +186,17 @@ class MainWindow(ttk.Frame):
         self.ma_save_tooltip = TT.ToolTip(self.ma_save_login_btn, "Save your MyAllocator login details for future use.")
         self.ma_get_properties_btn = ttk.Button(self.ma_form_frame, text="Get Properties",
                                                 command=lambda: self.check_ma_credential("get properties"))
+        self.ma_get_properties_btn.configure(cursor=self.pointer)
         self.ma_properties_tooltip = TT.ToolTip(self.ma_get_properties_btn, "Retrieve your properties from your "
                                                                             "MyAllocator account.")
         self.ma_change_detials_btn = ttk.Button(self.ma_form_frame, text="Change login details",
                                                 command=self.ma_change_details)
+        self.ma_change_detials_btn.configure(cursor=self.pointer)
         self.ma_change_details_tooltip = TT.ToolTip(self.ma_change_detials_btn, "Change your saved MyAllocator login "
                                                                                 "details.")
         self.ma_back_btn = ttk.Button(self.ma_form_frame, text="Back",
                                       command=lambda: self.upload_style("myallocator"))
+        self.ma_back_btn.configure(cursor=self.pointer)
         self.ma_warning_var = tk.StringVar()
         self.ma_warning = ttk.Label(self.ma_form_frame, style="Warning.TLabel", wraplength=self.parent.winfo_width()*.6,
                                     textvariable=self.ma_warning_var)
@@ -315,6 +323,7 @@ class MainWindow(ttk.Frame):
                                                        values=sorted(list(self.ma_properties.keys())))
             self.ma_download_btn = ttk.Button(self.ma_form_frame, text="Download Bookings",
                                               command=self.ma_download_bookings)
+            self.ma_download_btn.configure(cursor=self.pointer)
             self.ma_properties_serparator = ttk.Separator(self.ma_form_frame, orient="horizontal")
             self.ma_properties_warn_var = tk.StringVar()
             self.ma_properties_warn_lbl = ttk.Label(self.ma_form_frame, wraplength=self.winfo_width() * 0.35,
@@ -335,12 +344,15 @@ class MainWindow(ttk.Frame):
         self.browse_files_title_lbl = ttk.Label(self.browse_files_frame, text="Bookings Upload", style="title.TLabel")
         self.browse_files_title_separator = ttk.Separator(self.browse_files_frame, orient="horizontal")
         self.browse_files_btn = ttk.Button(self.browse_files_frame, text="Browse...", command=self.browse_csv)
+        self.browse_files_btn.configure(cursor=self.pointer)
         self.browse_files_tooptip = TT.ToolTip(self.browse_files_btn, "Upload a 'csv' file of all your bookings "
                                                                       "(Can be downloaded from the channel manager you"
                                                                       " use.")
         self.browse_files_var = tk.StringVar()
         self.browse_files_lbl = ttk.Entry(self.browse_files_frame, width=self.field_width+5,
-                                          textvariable=self.browse_files_var)
+                                          textvariable=self.browse_files_var, state="readonly")
+        self.browse_files_lbl.configure(cursor=self.pointer)
+        self.browse_files_lbl.bind("<Button-1>", self.browse_csv)
         self.channel_lbl = ttk.Label(self.browse_files_frame, text="Channel Manager:")
         self.channel_combobox = ttk.Combobox(self.browse_files_frame, state="readonly", width=30,
                                              values=sorted(list(combobox_dicts.channel_managers.keys())))
@@ -348,6 +360,7 @@ class MainWindow(ttk.Frame):
         self.browse_files_separator = ttk.Separator(self.browse_files_frame, orient="horizontal")
         self.browse_back_btn = ttk.Button(self.browse_files_frame, text="Back",
                                           command=lambda: self.upload_style("upload bookings"))
+        self.browse_back_btn.configure(cursor=self.pointer)
 
         #  pack Upload Bookings widgets
         self.browse_files_frame.grid(row=1, column=0, padx=20, sticky=tk.W+tk.E)
@@ -362,7 +375,7 @@ class MainWindow(ttk.Frame):
         self.browse_files_separator.grid(row=5, column=0, columnspan=3, pady=2, sticky=tk.W+tk.E)
         self.update()
 
-    def browse_csv(self):
+    def browse_csv(self, event=None):
         self.bookings_file = filedialog.askopenfilename(filetypes=(("CSV Files", "*.csv"),))
         self.browse_files_var.set(self.bookings_file)
         if self.channel_combobox.get() != "--Select Channel Manager--":
@@ -403,15 +416,16 @@ class MainWindow(ttk.Frame):
         self.hw_password_entry.bind("<Return>", self.save_hw_login)
         self.hw_save_details_btn = ttk.Button(self.hw_form_frame, text="Save login details",
                                               command=lambda: self.save_hw_login(None))
+        self.hw_save_details_btn.configure(cursor=self.pointer)
         self.hw_save_details_tooltip = TT.ToolTip(self.hw_save_details_btn, "Save your Hostel World login details for "
                                                                             "future use.")
         self.hw_change_details_btn = ttk.Button(self.hw_form_frame, text="Change login details",
                                                 command=self.hw_change_details)
+        self.hw_change_details_btn.configure(cursor=self.pointer)
         self.hw_change_details_tooltip = TT.ToolTip(self.hw_change_details_btn, "Change your saved Hostel World login"
                                                                                 " details.")
-        self.hw_add_details_btn = ttk.Button(self.hw_form_frame, text="Add new login")  # TODO add command
-        self.hw_add_details_tooltip = TT.ToolTip(self.hw_add_details_btn, "Add new login information for Hostel World")
         self.hw_back_btn = ttk.Button(self.hw_form_frame, text="Back", command=lambda: self.upload_style("hostelworld"))
+        self.hw_back_btn.configure(cursor=self.pointer)
         self.hw_warning_var = tk.StringVar()
         self.hw_warning_lbl = ttk.Label(self.hw_form_frame, style="Warning.TLabel",
                                         wraplength=self.parent.winfo_width()*0.7, textvariable=self.hw_warning_var)
@@ -568,7 +582,6 @@ class MainWindow(ttk.Frame):
             self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
             self.calculate_warning_var.set("Hostel World site timed out, please try again later.")
 
-
     def ma_download_bookings(self):
         self.parent.update()
         self.ma_warning_var.set("")
@@ -625,14 +638,17 @@ class MainWindow(ttk.Frame):
         self.sa_user_id_combobox.bind("<<ComboboxSelected>>", self.load_from_combobox)
         self.sa_save_login_btn = ttk.Button(self.sa_form_frame, text="Save login details",
                                             command=lambda: self.save_sa_login(None))
+        self.sa_save_login_btn.configure(cursor=self.pointer)
         self.sa_save_login_tooltip = TT.ToolTip(self.sa_save_login_btn, "Save your Statistik Amt login info for future"
                                                                         " use")
         self.sa_change_details_btn = ttk.Button(self.sa_form_frame, text="Change password",
                                                 command=lambda: self.change_sa_login(origin, self.sa_property))
+        self.sa_change_details_btn.configure(cursor=self.pointer)
         self.sa_change_details_tooltip = TT.ToolTip(self.sa_change_details_btn, "Change your saved Statistik Amt "
                                                                                 " password for this User ID.")
         self.sa_add_login_details_btn = ttk.Button(self.sa_form_frame, text="Add login details",
                                                    command=lambda: self.change_sa_login(origin, "", "new"))
+        self.sa_add_login_details_btn.configure(cursor=self.pointer)
         self.sa_add_login_details_tooltip = TT.ToolTip(self.sa_add_login_details_btn, "Add a new login User ID and "
                                                                                       "password for the Statistik Amt")
         self.sa_warning_var = tk.StringVar()
@@ -652,6 +668,7 @@ class MainWindow(ttk.Frame):
                                           values=sorted(list(combobox_dicts.years.keys())), width=7)
         self.calculate_btn = ttk.Button(self.calculate_frame, text="Calculate Statistics",
                                         command=self.calculate_statistics)
+        self.calculate_btn.configure(cursor=self.pointer)
         self.calculate_warning_var = tk.StringVar()
         self.calculate_warning = ttk.Label(self.calculate_frame, style="Warning.TLabel",
                                            wraplength=self.parent.winfo_width()*0.3,
@@ -964,6 +981,7 @@ class MainWindow(ttk.Frame):
                                                 textvariable=self.sa_options_warning_var)
         self.send_to_sa_btn = ttk.Button(self.sa_options_frame, style="Upload.TButton", text="SEND",
                                          command=lambda: self.check_sa_credential("send stats", self.sa_property))
+        self.send_to_sa_btn.configure(cursor=self.pointer)
         self.send_to_sa_tooltip = TT.ToolTip(self.send_to_sa_btn, "Send your calculated statistics for the chosen "
                                                                   "month to the Statistik Amt.")
         self.options_separator = ttk.Separator(self.sa_options_frame, orient="horizontal")
@@ -1047,10 +1065,13 @@ class MainWindow(ttk.Frame):
                                                               foreground="green")
                         self.send_sa_yes_btn = ttk.Button(self.send_sa_progress_frame, text="Yes",
                                                           command=lambda: self.send_statistics("good", True))
+                        self.send_sa_yes_btn.configure(cursor=self.pointer)
                         self.send_sa_no_btn = ttk.Button(self.send_sa_progress_frame, text="No",
                                                          command=self.finish)
+                        self.send_sa_no_btn.configure(cursor=self.pointer)
                         self.send_sa_finish_btn = ttk.Button(self.send_sa_progress_frame, text="Finish",
                                                              command=self.finish)
+                        self.send_sa_finish_btn.configure(cursor=self.pointer)
                         self.send_sa_separator = ttk.Separator(self.send_sa_progress_frame, orient="horizontal")
 
                         self.send_sa_progress_frame.grid(row=6, column=0, padx=20, sticky=tk.W+tk.E)
@@ -1298,7 +1319,7 @@ def main():
     root = tk.Tk()
     root.wm_title("Statistik Rechner")
     if sys.platform == "win32":
-        root.wm_iconbitmap(default=".icons/statistik-rechner-red.ico")
+        root.wm_iconbitmap(default=".icons/statistik-rechner-black.ico")
     root.resizable(0, 0)
     app = MainWindow(root)
     root.mainloop()

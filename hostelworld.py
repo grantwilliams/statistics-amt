@@ -4,6 +4,7 @@ import datetime
 import calendar
 import mechanicalsoup
 import requests.exceptions
+import tkinter.messagebox
 
 
 def check_cred(login_details, hw_cred_queue, call_origin):
@@ -23,6 +24,12 @@ def check_cred(login_details, hw_cred_queue, call_origin):
     login_form.find("input", {"id": "Password"})['value'] = login_details["password"]
 
     home_page = browser.submit(login_form, login_page.url)
+
+    if len(home_page.soup.find_all("div", {"id": "user-expired"})):
+        tkinter.messagebox.showerror("Password Expired!", "Your Hostel World Inbox password has expired, please "
+                                                          "log into your Hostel World Inbox account and save a "
+                                                          "new one.")
+        hw_cred_queue.put("hw not ok {}".format(call_origin))
 
     if len(home_page.soup.find_all("div", {"id": "loginInfo"})) < 1:
         hw_cred_queue.put("hw not ok {}".format(call_origin))

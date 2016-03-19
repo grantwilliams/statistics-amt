@@ -118,6 +118,10 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
             return
     progress_queue.put(10)
     progress_queue.put("Entering number of beds and closure dates...")
+    try:
+        driver.find_element_by_id("discardBackupButton").click()
+    except exceptions.NoSuchElementException:
+        pass  # does not exist
     driver.find_element_by_id("confirmButton").click()
     driver.find_element_by_link_text("Angebot").click()
     driver.find_element_by_name("AnzBetten").send_keys(options_details["beds"])
@@ -127,13 +131,15 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     progress_queue.put(10)
     driver.find_element_by_link_text("Gäste aus Europa").click()
 
-    info_button_classes = ["class275", "class280", "class285", "class290"]
+    info_button_titles = ['Erläuterungen zum Wohnsitz der Gäste', 'Erläuterungen zur Schweiz',
+                          'Erläuterungen zu den Sonstigen Nordamerikanischen Ländern',
+                          'Erläuterungen zu den Arabischen Golfstaaten']
     progress_queue.put("Entering statistics for guests from Europe...")
     current_field = driver.find_element_by_name("ANK_Deutschland")
     for i in range(20):
         progress_queue.put(1)
         current_stats = next(statistics_generator)
-        if current_field.get_attribute("class") in info_button_classes:
+        if current_field.get_attribute("title").rstrip() in info_button_titles:
             current_field.send_keys(Keys.TAB, current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
             current_field = driver.switch_to.active_element
         else:
@@ -147,21 +153,21 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     for i in range(17):
         progress_queue.put(1)
         current_stats = next(statistics_generator)
-        if current_field.get_attribute("class") in info_button_classes:
+        if current_field.get_attribute("title").rstrip() in info_button_titles:
             current_field.send_keys(Keys.TAB, current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
             current_field = driver.switch_to.active_element
         else:
             current_field.send_keys(current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
             current_field = driver.switch_to.active_element
 
-    driver.find_element_by_link_text("Gäste aus Amerika, Asien, u. a.").click()
+    driver.find_element_by_partial_link_text("Gäste aus Amerika").click()
 
     progress_queue.put("Entering statistics for guests from America, Asia etc...")
     current_field = driver.find_element_by_name("ANK_Kanada")
     for i in range(17):
         progress_queue.put(1)
         current_stats = next(statistics_generator)
-        if current_field.get_attribute("class") in info_button_classes:
+        if current_field.get_attribute("title").rstrip() in info_button_titles:
             current_field.send_keys(Keys.TAB, current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
             current_field = driver.switch_to.active_element
         else:

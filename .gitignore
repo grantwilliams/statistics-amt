@@ -66,6 +66,7 @@ ghostdriver.log
 *.csv
 Statistics Saved Files
 design
+main.spec
 
 # Build/Dist folders
 build
