@@ -111,7 +111,11 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
         driver.quit()
         return
 
-    if len(BeautifulSoup(driver.page_source, "html.parser").find_all("div", {"id": "app_message"})) > 0:
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+
+    warning_message = soup.find_all("div", {"id": "app_message"})
+    if len(warning_message) > 0:
         if not already_sent_continue:
             progress_queue.put("already sent")
             driver.quit()

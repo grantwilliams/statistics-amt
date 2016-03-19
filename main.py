@@ -876,6 +876,7 @@ class MainWindow(ttk.Frame):
         self.parent.update()
         self.sa_change_details_btn.configure(state=tk.DISABLED)
         self.sa_add_login_details_btn.configure(state=tk.DISABLED)
+        self.calculate_warning_var.set("")
         try:
             self.browse_back_btn.configure(state=tk.DISABLED)
         except AttributeError:
@@ -1254,16 +1255,12 @@ class MainWindow(ttk.Frame):
                 self.calculate_progress_lbl_var.set(message)
                 self.setup_sa_options()
                 self.parent.after(100, self.process_calculate_progress_bar)
-            elif message == "wrong channel":
-                self.calculate_warning.grid(row=3, column=1, columnspan=2, sticky=tk.W, pady=2)
+            elif message == "wrong csv/channel":
+                self.calculate_warning.grid(row=2, column=1, columnspan=2, sticky=tk.W, pady=2)
                 self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
                 self.calculate_warning_var.set("Could not calculate the statistics properly, please make sure you have"
-                                               " chosen the correct channel manager above and try again.")
-            elif message == "wrong csv":
-                self.calculate_warning.grid(row=3, column=1, columnspan=2, sticky=tk.W, pady=2)
-                self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
-                self.calculate_warning_var.set("Could not calculate the statistics properly, please make sure you have"
-                                               " chosen the correct 'csv' file and try again.")
+                                               " chosen the correct channel manager above and the correct 'csv' file "
+                                               "and try again.")
                 self.calculate_btn.configure(state=tk.ACTIVE)
             elif isinstance(message, list):
                 self.statistics_results = message[0]
