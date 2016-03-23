@@ -33,22 +33,10 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
         password.submit()
     except exceptions.TimeoutException:
         sa_cred_queue.put("sa page timeout {}".format(call_origin))
+        driver.quit()
         return
 
-    try:
-        WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.ID, "logoutButton")))
-    except exceptions.TimeoutException:
-        sa_cred_queue.put("sa page timeout {}".format(call_origin))
-        return
-    except exceptions.NoSuchElementException:
-        sa_cred_queue.put(["sa not ok {}".format(call_origin), "{}".format(ma_property)])
-        driver.quit()
-        return
-    except exceptions.ElementNotVisibleException:
-        sa_cred_queue.put(["sa not ok {}".format(call_origin), "{}".format(ma_property)])
-        driver.quit()
-        return
-    else:
+    if len(BeautifulSoup(driver.page_source, "html.parser").find_all('a', {'id': 'logoutButton'})) > 0:
         driver.find_element_by_id("menu300").click()
         driver.find_element_by_id("menu301").click()
         address_fields = ["Adresse.URS1", "Adresse.URS2", "Adresse.URS3", "Adresse.URS4", "Adresse.URS5",
@@ -61,6 +49,8 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
             sa_cred_queue.put("sa address bad {}".format(call_origin))
         else:
             sa_cred_queue.put("sa ok {}".format(call_origin))
+    else:
+        sa_cred_queue.put(["sa not ok {}".format(call_origin), "{}".format(ma_property)])
     driver.quit()
 
 
