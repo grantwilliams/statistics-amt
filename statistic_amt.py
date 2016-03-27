@@ -96,8 +96,8 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     try:
         driver.find_element_by_link_text(options_details["sub month"]).click()
     except exceptions.NoSuchElementException:
+        progress_queue.put(80)  # resets progress bar
         progress_queue.put("no date")
-        driver.quit()
         driver.quit()
         return
 
@@ -107,6 +107,7 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     warning_message = soup.find_all("div", {"id": "app_message"})
     if len(warning_message) > 0:
         if not already_sent_continue:
+            progress_queue.put(80)  # resets progress bar
             progress_queue.put("already sent")
             driver.quit()
             return
@@ -184,20 +185,20 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
             progress_queue.put("assertion error")
             driver.quit()
             return
-    driver.find_element_by_id("sendButton").click()
-
-    html = driver.page_source
-
-    soup = BeautifulSoup(html, "html.parser")
-
-    if len(soup.find_all("div", {"class": "errorMessage"})) > 0:
-        progress_queue.put("assertion error")
-        driver.quit()
-        return
-
-    driver.find_element_by_id("confirmButton").click()
-    html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
-    ident_nummer = soup.find("span", {"id": "page_h_ctrl1"})
-    progress_queue.put(["Finished", options_details["sub month"], statistics_results, ident_nummer.text])
+    # driver.find_element_by_id("sendButton").click()
+    #
+    # html = driver.page_source
+    #
+    # soup = BeautifulSoup(html, "html.parser")
+    #
+    # if len(soup.find_all("div", {"class": "errorMessage"})) > 0:
+    #     progress_queue.put("assertion error")
+    #     driver.quit()
+    #     return
+    #
+    # driver.find_element_by_id("confirmButton").click()
+    # html = driver.page_source
+    # soup = BeautifulSoup(html, "html.parser")
+    ident_nummer = 20055203  # soup.find("span", {"id": "page_h_ctrl1"})
+    progress_queue.put(["Finished", options_details["sub month"], statistics_results, ident_nummer])  # TODO .text
     driver.quit()

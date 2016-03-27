@@ -527,7 +527,7 @@ class MainWindow(ttk.Frame):
             self.ma_download_btn.configure(state=tk.DISABLED)
             self.ma_properties_combobox.configure(state=tk.DISABLED)
             self.sa_form_frame.grid_forget()
-            self.calculate_frame.forget()
+            self.calculate_frame.grid_forget()
             download_process = threading.Thread(target=myallocator.download_bookings_csv,
                                                 args=(self.ma_login_details, ma_property, self.download_queue))
             download_process.daemon = True
@@ -948,6 +948,7 @@ class MainWindow(ttk.Frame):
             self.sa_user_id_entry.focus()
 
     def calculate_statistics(self, hw_bookings_downloaded=False):
+        self.send_sa_progress_frame.grid_forget()  # in case coming from SEND to SA error
         self.sa_change_details_btn.configure(state=tk.DISABLED)
         self.sa_add_login_details_btn.configure(state=tk.DISABLED)
         self.calculate_warning_var.set("")
@@ -1041,6 +1042,7 @@ class MainWindow(ttk.Frame):
         self.forced_closed_combo.grid(row=3, column=1, sticky=tk.W, pady=(0, 2))
         self.forced_closed_lbl2.grid(row=3, column=2, columnspan=3, pady=(0, 2), sticky=tk.W)
         self.send_to_sa_btn.grid(row=4, column=1, columnspan=3, pady=(0, 10), sticky=tk.E)
+        self.send_to_sa_btn.configure(state=tk.ACTIVE)
         self.sa_options_warning_lbl.grid(row=4, column=0, sticky=tk.E, padx=10, pady=(0, 2))
         self.options_separator.grid(row=5, column=0, columnspan=6, pady=2, sticky=tk.W+tk.E)
         if self.sa_login_details.get(self.sa_property, {}).get("beds", 0) > 0:
@@ -1056,19 +1058,30 @@ class MainWindow(ttk.Frame):
             self.sa_options_warning_var.set("Number of beds must be an integer")
             self.send_to_sa_btn.configure(state=tk.ACTIVE)
             return
-        reopen_date = datetime.strptime("{}-{}-{}".format(self.reopen_combo_d.get(), self.reopen_combo_m.get(),
-                                                          self.reopen_combo_y.get()), '%d-%m-%Y')
-        if not reopen_date > datetime.today():
-            self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
-            self.sa_options_warning_var.set("Reopen date must be in the future")
-            self.send_to_sa_btn.configure(state=tk.ACTIVE)
-            return
-        self.check_sa_credential("send stats", sa_property)
+        reopen_date = None
+        no_reopen_date_chosen = False
+        try:
+            reopen_date = datetime.strptime("{}-{}-{}".format(self.reopen_combo_d.get(), self.reopen_combo_m.get(),
+                                                              self.reopen_combo_y.get()), '%d-%m-%Y')
+        except ValueError:
+            if self.reopen_combo_d.get() != '' or self.reopen_combo_m.get() != '' or self.reopen_combo_y.get() != '':
+                self.sa_options_warning_var.set("Please choose a complete date! TT.MM.JJJJ")
+                return
+            else:
+                no_reopen_date_chosen = True
+        if reopen_date is not None:
+            if reopen_date < datetime.today():
+                self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
+                self.sa_options_warning_var.set("Reopen date must be in the future")
+                self.send_to_sa_btn.configure(state=tk.ACTIVE)
+                return
+        if no_reopen_date_chosen:
+            self.check_sa_credential("send stats", sa_property)
 
     def send_statistics(self, status, already_sent_continue=False):
         self.sa_options_warning_var.set("")
         self.send_sa_progress_var.set("")  # in case coming from 'Yes' resend statistics
-        self.send_sa_progress_frame.forget()  # in case coming from 'Yes' resend statistics
+        self.send_sa_progress_frame.grid_forget()  # in case coming from 'Yes' resend statistics
         if status == "good":
             if already_sent_continue:
                 self.send_sa_progress_var.set("")
@@ -1083,7 +1096,7 @@ class MainWindow(ttk.Frame):
                 "force closure": self.forced_closed_combo.get(),
                 "sub month": "{} {}".format(self.month_combobox.get(), self.year_combobox.get())
             }
-            self.sa_login_details[self.sa_property]["beds"] = self.number_beds_entry.get()
+            self.sa_login_details[self.sa_property]["beds"] = int(self.number_beds_entry.get())
             if int(self.number_beds_entry.get()) > 0:
                 with open(".data_files/.sa_login.json", 'w', encoding='utf-8') as outfile:
                     json.dump(self.sa_login_details, indent=4, sort_keys=True, fp=outfile)
@@ -1129,16 +1142,7 @@ class MainWindow(ttk.Frame):
                                             "again later.")
 
     def finish(self):
-        # self.ma_form_frame.grid_forget()
-        # self.hw_form_frame.grid_forget()
-        # self.browse_files_frame.grid_forget()
-        # self.calculate_frame.grid_forget()
-        # self.sa_form_frame.grid_forget()
-        # self.sa_options_frame.grid_forget()
-        # self.send_sa_progress_frame.grid_forget()
-        for widget in self.winfo_children():
-            widget.grid_forget()
-        self.upload_style("init")
+        self.__init__(self.parent)
 
     def load_bar(self):
         try:
@@ -1301,6 +1305,7 @@ class MainWindow(ttk.Frame):
                 self.send_sa_progress_bar.step(message)
                 self.parent.after(10, self.process_sa_send_queue)
             elif isinstance(message, list):
+                os.remove(self.bookings_file)
                 self.send_sa_progress_var.set("Statistics for {} successfully sent! Identnummer: {} (bei Rückfragen "
                                               "bitte angeben)".format(message[1], message[3]))
                 import display_results

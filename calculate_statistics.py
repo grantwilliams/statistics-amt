@@ -178,5 +178,5 @@ def calculate(month, year, filename, progress_queue, channel):
             progress_queue.put(4)
     progress_queue.put("Finished!")
     progress_queue.put([statistics, "{} {}".format(month, year)])
-    os.remove(filename)
+    # os.remove(filename)
     return

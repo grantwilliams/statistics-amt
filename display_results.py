@@ -3,7 +3,6 @@ from os.path import expanduser
 import sys
 import tkinter as tk
 from tkinter import ttk
-from collections import OrderedDict
 import tkinter.messagebox
 import pyscreenshot
 
@@ -36,7 +35,7 @@ class ResultsWindow(tk.Toplevel):
     def display_results(self, statistics_results, month, ident_nummer):
         self.title("Statistics Results")
         title_style = ttk.Style()
-        title_style.configure("Title.TLabel", font="-size 16 -weight bold", background="#98FB98")
+        title_style.configure("DRTitle.TLabel", font="-size 16 -weight bold", background="#98FB98")
         frame_style = ttk.Style()
         frame_style.configure("Sent.TFrame", background="#98FB98")
 
@@ -49,9 +48,9 @@ class ResultsWindow(tk.Toplevel):
         statistics_generator = stats_generator()
 
         results_frame = ttk.Frame(self)
-        country_header_one = ttk.Label(results_frame, style="Title.TLabel", text=" Country ", anchor=tk.CENTER)
-        guests_header_one = ttk.Label(results_frame, style="Title.TLabel", text=" Guests ", anchor=tk.CENTER)
-        nights_header_one = ttk.Label(results_frame, style="Title.TLabel", text=" Overnights ", anchor=tk.CENTER)
+        country_header_one = ttk.Label(results_frame, style="DRTitle.TLabel", text=" Country ", anchor=tk.CENTER)
+        guests_header_one = ttk.Label(results_frame, style="DRTitle.TLabel", text=" Guests ", anchor=tk.CENTER)
+        nights_header_one = ttk.Label(results_frame, style="DRTitle.TLabel", text=" Overnights ", anchor=tk.CENTER)
         europe_header_one = ttk.Label(results_frame, text=" Europe", font="-weight bold", background="#E9967A")
         title_separator = ttk.Separator(results_frame, orient=tk.HORIZONTAL)
         results_frame.grid(row=0, column=0)
@@ -86,9 +85,9 @@ class ResultsWindow(tk.Toplevel):
 
         section_one_separator = ttk.Separator(results_frame, orient=tk.VERTICAL)
         section_one_separator.grid(row=0, column=3, rowspan=23, sticky=tk.N+tk.S)
-        country_header_two = ttk.Label(results_frame, style="Title.TLabel", text=" Country ", anchor=tk.CENTER)
-        guests_header_two = ttk.Label(results_frame, style="Title.TLabel", text=" Guests ", anchor=tk.CENTER)
-        nights_header_two = ttk.Label(results_frame, style="Title.TLabel", text=" Overnights ", anchor=tk.CENTER)
+        country_header_two = ttk.Label(results_frame, style="DRTitle.TLabel", text=" Country ", anchor=tk.CENTER)
+        guests_header_two = ttk.Label(results_frame, style="DRTitle.TLabel", text=" Guests ", anchor=tk.CENTER)
+        nights_header_two = ttk.Label(results_frame, style="DRTitle.TLabel", text=" Overnights ", anchor=tk.CENTER)
         europe_header_two = ttk.Label(results_frame, text=" Europe", font="-weight bold", background="#E9967A")
         country_header_two.grid(row=0, column=4, sticky=tk.W+tk.E)
         guests_header_two.grid(row=0, column=5, sticky=tk.W+tk.E)
@@ -146,9 +145,9 @@ class ResultsWindow(tk.Toplevel):
 
         section_two_separator = ttk.Separator(results_frame, orient=tk.VERTICAL)
         section_two_separator.grid(row=0, column=7, rowspan=23, sticky=tk.N+tk.S)
-        country_header_three = ttk.Label(results_frame, style="Title.TLabel", text=" Country ", anchor=tk.CENTER)
-        guests_header_three = ttk.Label(results_frame, style="Title.TLabel", text=" Guests ", anchor=tk.CENTER)
-        nights_header_three = ttk.Label(results_frame, style="Title.TLabel", text=" Overnights ", anchor=tk.CENTER)
+        country_header_three = ttk.Label(results_frame, style="DRTitle.TLabel", text=" Country ", anchor=tk.CENTER)
+        guests_header_three = ttk.Label(results_frame, style="DRTitle.TLabel", text=" Guests ", anchor=tk.CENTER)
+        nights_header_three = ttk.Label(results_frame, style="DRTitle.TLabel", text=" Overnights ", anchor=tk.CENTER)
         america_header = ttk.Label(results_frame, text=" America", font="-weight bold", background="#E9967A")
         asia_header = ttk.Label(results_frame, text=" Asia", font="-weight bold", background="#E9967A")
         australia_header = ttk.Label(results_frame, text=" Australia, Oceania", font="-weight bold",
@@ -191,8 +190,8 @@ class ResultsWindow(tk.Toplevel):
                                  background="#E9967A", anchor=tk.CENTER)
         total_nights = ttk.Label(results_frame, text=statistics_results["TOTAL"][1], font="-weight bold",
                                  background="#E9967A", anchor=tk.CENTER)
-        month_lbl = ttk.Label(results_frame, style="Title.TLabel", text="Month: {}".format(month))
-        ident_nummber_lbl = ttk.Label(results_frame, style="Title.TLabel",
+        month_lbl = ttk.Label(results_frame, style="DRTitle.TLabel", text="Month: {}".format(month))
+        ident_nummber_lbl = ttk.Label(results_frame, style="DRTitle.TLabel",
                                       text="Identnummer: {}".format(ident_nummer))
         results_separator = ttk.Separator(results_frame, orient=tk.HORIZONTAL)
 
