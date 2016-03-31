@@ -1,5 +1,4 @@
 import re
-import os
 import json
 import mechanicalsoup
 import requests.exceptions
@@ -12,8 +11,9 @@ def check_cred(login_details, ma_cred_queue, call_origin):
     except requests.exceptions.Timeout:
         ma_cred_queue.put(["exit", "MyAllocator website has timed out and could not be reached, please try again"
                                    " later."])
+        return
     except requests.exceptions.ConnectionError:
-        ma_cred_queue.put(["exit", "Connection error, could not connect to internet"])
+        ma_cred_queue.put(["exit", "Could not connect to the internet, please check your connection and try again"])
         return
     else:
         login_form = login_page.soup.select('.login_box')[0].select('form')[0]
@@ -26,8 +26,10 @@ def check_cred(login_details, ma_cred_queue, call_origin):
 
         if len(property_tags) > 0:
             ma_cred_queue.put("ma ok {}".format(call_origin))
+            return
         else:
             ma_cred_queue.put("ma not ok {}".format(call_origin))
+            return
 
 
 def get_properties(login_details, get_properties_queue):
@@ -52,6 +54,7 @@ def get_properties(login_details, get_properties_queue):
     with open(".data_files/properties.json", "w") as outfile:
         json.dump(properties, indent=4, sort_keys=True, fp=outfile)
     get_properties_queue.put("Finished")
+    return
 
 
 def download_bookings_csv(login_details, url, download_queue):

@@ -47,18 +47,23 @@ def check_cred(login_details, sa_cred_queue, call_origin, ma_property):
             address_field_gets.append(driver.find_element_by_name(field).get_attribute("value"))
         if address_field_gets == empty_list:
             sa_cred_queue.put("sa address bad {}".format(call_origin))
+            driver.quit()
+            return
         else:
             sa_cred_queue.put("sa ok {}".format(call_origin))
+            driver.quit()
+            return
     else:
         sa_cred_queue.put(["sa not ok {}".format(call_origin), "{}".format(ma_property)])
     driver.quit()
+    return
 
 
 def send(login_details, options_details, progress_queue, ma_property, statistics_results, already_sent_continue,
          tries=0):
     def stats_generator():
-        for item in statistics_results.keys():
-            yield [statistics_results[item][0], statistics_results[item][1]]
+        for key in statistics_results.keys():
+            yield [statistics_results[key][0], statistics_results[key][1]]
     statistics_generator = stats_generator()
 
     tries = tries
@@ -84,12 +89,19 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
             By.LINK_TEXT, login_details[ma_property]["bundesland"]))).click()
     except exceptions.TimeoutException:
         progress_queue.put("timed out")
+        driver.quit()
+        return
 
     user_id = driver.find_element_by_id("loginid")
     user_id.send_keys(login_details[ma_property]["sa_user_id"])
     password = driver.find_element_by_id("password")
     password.send_keys(login_details[ma_property]["sa_password"])
-    password.submit()
+    try:
+        password.submit()
+    except exceptions.TimeoutException:
+        progress_queue.put("timed out")
+        driver.quit()
+        return
     progress_queue.put("Logging into Statistiks Amt site...")
     progress_queue.put(10)
 
@@ -185,20 +197,20 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
             progress_queue.put("assertion error")
             driver.quit()
             return
-    # driver.find_element_by_id("sendButton").click()
-    #
-    # html = driver.page_source
-    #
-    # soup = BeautifulSoup(html, "html.parser")
-    #
-    # if len(soup.find_all("div", {"class": "errorMessage"})) > 0:
-    #     progress_queue.put("assertion error")
-    #     driver.quit()
-    #     return
-    #
-    # driver.find_element_by_id("confirmButton").click()
-    # html = driver.page_source
-    # soup = BeautifulSoup(html, "html.parser")
-    ident_nummer = 20055203  # soup.find("span", {"id": "page_h_ctrl1"})
-    progress_queue.put(["Finished", options_details["sub month"], statistics_results, ident_nummer])  # TODO .text
-    driver.quit()
+    driver.find_element_by_id("sendButton").click()
+
+    html = driver.page_source
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    if len(soup.find_all("div", {"class": "errorMessage"})) > 0:
+        progress_queue.put("assertion error")
+        driver.quit()
+        return
+
+    driver.find_element_by_id("confirmButton").click()
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+    ident_nummer = soup.find("span", {"id": "page_h_ctrl1"})
+    progress_queue.put(["Finished", options_details["sub month"], statistics_results, ident_nummer.text])
+    # driver.quit()

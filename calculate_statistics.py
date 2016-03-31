@@ -140,6 +140,9 @@ def calculate(month, year, filename, progress_queue, channel):
                             except ValueError:
                                 pass  # skip if can't convert to int
                                 errors[1] += 1
+                            except IndexError:
+                                progress_queue.put("wrong csv/channel")
+                                return
                 except ValueError:
                     pass  # skip if date doesn't match
                     errors[0] += 1
@@ -177,6 +180,5 @@ def calculate(month, year, filename, progress_queue, channel):
                     statistics_csv_write.writerow([key.title()] + [str(value[0])] + [str(value[1])])
             progress_queue.put(4)
     progress_queue.put("Finished!")
-    progress_queue.put([statistics, "{} {}".format(month, year)])
-    # os.remove(filename)
+    progress_queue.put([statistics])
     return

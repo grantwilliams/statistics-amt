@@ -86,7 +86,7 @@ ISO3166 = {
     'GM': 'GAMBIA',
     'GE': 'GEORGIA',
     'DE': 'GERMANY',
-    'GB' : 'UNITED KINGDOM',
+    'GB': 'UNITED KINGDOM',
     'GH': 'GHANA',
     'GI': 'GIBRALTAR',
     'GR': 'GREECE',

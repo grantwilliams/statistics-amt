@@ -30,6 +30,7 @@ def check_cred(login_details, hw_cred_queue, call_origin):
                                                           "log into your Hostel World Inbox account and save a "
                                                           "new one.")
         hw_cred_queue.put("hw not ok {}".format(call_origin))
+        return
 
     if len(home_page.soup.find_all("div", {"id": "loginInfo"})) < 1:
         hw_cred_queue.put("hw not ok {}".format(call_origin))
@@ -53,14 +54,21 @@ def get_bookings(login_details, month_chosen, hw_bookings_queue):
     hw_bookings_queue.put(5)
     bar_total += 5
 
-    login_page = browser.get('https://inbox.hostelworld.com/inbox/', timeout=15)
+    try:
+        login_page = browser.get('https://inbox.hostelworld.com/inbox/', timeout=15)
+    except requests.exceptions.Timeout:
+        hw_bookings_queue.put("HostelWorld page timed out, please try again later")
+        return
+    except requests.exceptions.ConnectionError:
+        hw_bookings_queue.put("Could not connect to internet, please check your internet connection and try again.")
+        return
 
     login_form = login_page.soup.form
     login_form.find("input", {"id": "HostelNumber"})['value'] = login_details["hostel number"]
     login_form.find("input", {"id": "Username"})['value'] = login_details["username"]
     login_form.find("input", {"id": "Password"})['value'] = login_details["password"]
 
-    home_page = browser.submit(login_form, login_page.url)
+    browser.submit(login_form, login_page.url)
 
     bookings_page = browser.get(
         "https://inbox.hostelworld.com/booking/search/date?DateType=arrivaldate&dateFrom={}&dateTo={}".format(
@@ -95,7 +103,14 @@ def get_bookings(login_details, month_chosen, hw_bookings_queue):
     step = len(bookings_dict) // 80 if len(bookings_dict) >= 80 else 1
     i = 1
     for key in bookings_dict.keys():
-        customer_page = browser.get(bookings_dict[key]["Href"])
+        try:
+            customer_page = browser.get(bookings_dict[key]["Href"], timeout=15)
+        except requests.exceptions.Timeout:
+            hw_bookings_queue.put("HostelWorld page timed out, please try again later")
+            return
+        except requests.exceptions.ConnectionError:
+            hw_bookings_queue.put("Connection lost, please check your internet connection and try again.")
+            return
 
         customer_details = customer_page.soup.find_all("ul", {"class": "customer-details"})
 
@@ -121,3 +136,4 @@ def get_bookings(login_details, month_chosen, hw_bookings_queue):
                                        [bookings_dict[key]["Nationality"]])
     hw_bookings_queue.put(99 - bar_total)
     hw_bookings_queue.put("Finished")
+    return

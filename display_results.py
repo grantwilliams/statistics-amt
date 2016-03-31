@@ -15,6 +15,7 @@ class ResultsWindow(tk.Toplevel):
         self.statistics_results = statistics_results
         self.month = month
         self.ident_nummer = ident_nummer
+        self.file_location = None
         self.display_results(self.statistics_results, self.month, self.ident_nummer)
 
     def save_image(self, month):
