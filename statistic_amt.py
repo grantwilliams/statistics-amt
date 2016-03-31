@@ -209,8 +209,6 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
         return
 
     driver.find_element_by_id("confirmButton").click()
-    html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
-    ident_nummer = soup.find("span", {"id": "page_h_ctrl1"})
-    progress_queue.put(["Finished", options_details["sub month"], statistics_results, ident_nummer.text])
-    # driver.quit()
+    progress_queue.put(["Finished", options_details["sub month"], statistics_results])
+    driver.quit()
+    return

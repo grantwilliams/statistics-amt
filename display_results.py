@@ -8,15 +8,15 @@ import pyscreenshot
 
 
 class ResultsWindow(tk.Toplevel):
-    def __init__(self, parent, statistics_results, month, ident_nummer):
+    def __init__(self, parent, statistics_results, month):
         tk.Toplevel.__init__(self, parent)
         self.parent = parent
+        self.resizable(0, 0)
         self.sent_confirm_frame = None
         self.statistics_results = statistics_results
         self.month = month
-        self.ident_nummer = ident_nummer
         self.file_location = None
-        self.display_results(self.statistics_results, self.month, self.ident_nummer)
+        self.display_results(self.statistics_results, self.month)
 
     def save_image(self, month):
         self.sent_confirm_frame.grid_forget()
@@ -31,9 +31,9 @@ class ResultsWindow(tk.Toplevel):
         image.save(fp=image_name)
 
         if os.path.isfile(image_name):
-            tk.messagebox.showinfo("Saved file", "Saved!\n{}".format(os.path.abspath(image_name)))
+            tk.messagebox.showinfo("Saved file", "Saved!\n{}".format(os.path.abspath(image_name)), parent=self.parent)
 
-    def display_results(self, statistics_results, month, ident_nummer):
+    def display_results(self, statistics_results, month):
         self.title("Statistics Results")
         title_style = ttk.Style()
         title_style.configure("DRTitle.TLabel", font="-size 16 -weight bold", background="#98FB98")
@@ -192,15 +192,12 @@ class ResultsWindow(tk.Toplevel):
         total_nights = ttk.Label(results_frame, text=statistics_results["TOTAL"][1], font="-weight bold",
                                  background="#E9967A", anchor=tk.CENTER)
         month_lbl = ttk.Label(results_frame, style="DRTitle.TLabel", text="Month: {}".format(month))
-        ident_nummber_lbl = ttk.Label(results_frame, style="DRTitle.TLabel",
-                                      text="Identnummer: {}".format(ident_nummer))
         results_separator = ttk.Separator(results_frame, orient=tk.HORIZONTAL)
 
         total_header.grid(row=22, column=8, sticky=tk.W+tk.E)
         total_guests.grid(row=22, column=9, sticky=tk.W+tk.E)
         total_nights.grid(row=22, column=10, sticky=tk.W+tk.E)
         month_lbl.grid(row=23, column=0, columnspan=11, sticky=tk.W+tk.E)
-        ident_nummber_lbl.grid(row=23, column=8, sticky=tk.W+tk.E)
         results_separator.grid(row=24, column=0, columnspan=11, sticky=tk.W+tk.E)
 
         home = expanduser("~")

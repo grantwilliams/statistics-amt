@@ -155,7 +155,8 @@ class MainWindow(ttk.Frame):
         self.ma_save_login_btn = ttk.Button(self.ma_form_frame, text="Save login details",
                                             cursor=self.pointer, command=lambda: self.save_ma_login(None))
         self.ma_save_tooltip = ToolTip(self.ma_save_login_btn, "Save your MyAllocator login details for future use.")
-        self.ma_get_properties_btn = ttk.Button(self.ma_form_frame, text="Get Properties", cursor=self.pointer,
+        self.ma_get_properties_btn = ttk.Button(self.ma_form_frame, text="Continue/Fetch Properties",
+                                                cursor=self.pointer,
                                                 command=lambda: self.check_ma_credential("get properties"))
         self.ma_properties_tooltip = ToolTip(self.ma_get_properties_btn, "Retrieve your properties from your "
                                                                          "MyAllocator account.")
@@ -362,6 +363,15 @@ class MainWindow(ttk.Frame):
         self.upload_myallocator_btn.grid(row=2, column=0, pady=10)
         self.upload_hostelworld_btn.grid(row=2, column=1, pady=10)
         self.upload_file_btn.grid(row=2, column=2, pady=10)
+        if self.sa_logins_used > 3:
+            tk.messagebox.showinfo("Too Many Logins Saved", "Sorry, you have saved too many login details for the "
+                                                            "Statistik Amt (maximum is 3), please delete some or "
+                                                            "contact grant.williams2986@gmail.com if you need to be "
+                                                            "able to save more.", parent=self.parent)
+            self.upload_myallocator_btn.configure(state=tk.DISABLED)
+            self.upload_hostelworld_btn.configure(state=tk.DISABLED)
+            self.upload_file_btn.configure(state=tk.DISABLED)
+            return
         self.update_idletasks()
 
     def setup_ma(self):
@@ -642,6 +652,7 @@ class MainWindow(ttk.Frame):
                 self.hw_warning_var.set("Login successful!")
             self.hw_save_details_btn.grid_forget()
             self.hw_change_details_btn.grid(row=6, column=1, pady=2, sticky=tk.W)
+            self.hw_back_btn.configure(state=tk.ACTIVE)
             self.hw_hostel_number_entry.configure(state=tk.DISABLED)
             self.hw_username_entry.configure(state=tk.DISABLED)
             self.hw_password_entry.configure(state=tk.DISABLED)
@@ -671,7 +682,8 @@ class MainWindow(ttk.Frame):
             if "pass expire" in status:
                 tk.messagebox.showinfo("Password Expire", "Your Hostel World password will expire in {} days, please "
                                                           "log into your Hostel World Inbox to save a new "
-                                                          "one.".format(re.findall(r'\d+', status)[0]))
+                                                          "one.".format(re.findall(r'\d+', status)[0]),
+                                       parent=self.parent)
             month_chosen = self.month_combobox.get()
             year_chosen = self.year_combobox.get()
             date_obj = datetime.strptime("{}-{}".format(year_chosen, month_chosen), "%Y-%B")
@@ -826,26 +838,40 @@ class MainWindow(ttk.Frame):
                 if self.sa_property == "Upload Bookings":
                     self.sa_property = "User ID {}".format(self.sa_user_id)
                     if self.sa_login_details.get(self.sa_property, {}).get("sa_user_id", "") == "":
-                        self.sa_login_details[self.sa_property] = {}
-                        self.sa_login_details[self.sa_property]["sa_user_id"] = self.sa_user_id
-                        self.sa_login_details[self.sa_property]["sa_password"] = self.sa_password
-                        self.sa_login_details[self.sa_property]["bundesland"] = self.sa_bundesland
-                        self.sa_login_details[self.sa_property]["beds"] = 0
-                    else:
                         if self.sa_logins_used < 3:
+                            self.sa_login_details[self.sa_property] = {}
                             self.sa_login_details[self.sa_property]["sa_user_id"] = self.sa_user_id
                             self.sa_login_details[self.sa_property]["sa_password"] = self.sa_password
                             self.sa_login_details[self.sa_property]["bundesland"] = self.sa_bundesland
                             self.sa_login_details[self.sa_property]["beds"] = 0
-                            # TODO add message for too many IDs
-                elif self.sa_property != "Upload Bookings":
-                    #  create new dict entry if does not exist yet
-                    if self.sa_login_details.get(self.sa_property, {}).get("sa_user_id", "") == "":
-                        self.sa_login_details[self.sa_property] = {}
+                        else:
+                            tk.messagebox.showinfo("Maximum Logins Used", "Sorry, you have already saved "
+                                                                          "the maximum amount of logins (3).  "
+                                                                          "If you need to add more, please contact "
+                                                                          "grant.williams2986@gmail.com",
+                                                   parent=self.parent)
+                            return
+                    else:
                         self.sa_login_details[self.sa_property]["sa_user_id"] = self.sa_user_id
                         self.sa_login_details[self.sa_property]["sa_password"] = self.sa_password
                         self.sa_login_details[self.sa_property]["bundesland"] = self.sa_bundesland
                         self.sa_login_details[self.sa_property]["beds"] = 0
+                elif self.sa_property != "Upload Bookings":
+                    #  create new dict entry if does not exist yet
+                    if self.sa_login_details.get(self.sa_property, {}).get("sa_user_id", "") == "":
+                        if self.sa_logins_used < 3:
+                            self.sa_login_details[self.sa_property] = {}
+                            self.sa_login_details[self.sa_property]["sa_user_id"] = self.sa_user_id
+                            self.sa_login_details[self.sa_property]["sa_password"] = self.sa_password
+                            self.sa_login_details[self.sa_property]["bundesland"] = self.sa_bundesland
+                            self.sa_login_details[self.sa_property]["beds"] = 0
+                        else:
+                            tk.messagebox.showinfo("Maximum Logins Used", "Sorry, you have already saved "
+                                                                          "the maximum amount of logins (3).  "
+                                                                          "If you need to add more, please contact "
+                                                                          "grant.williams2986@gmail.com",
+                                                   parent=self.parent)
+                            return
                     # otherwise just update the dict entry
                     else:
                         self.sa_login_details[self.sa_property]["sa_user_id"] = self.sa_user_id
@@ -910,6 +936,7 @@ class MainWindow(ttk.Frame):
         self.sa_change_details_btn.grid_forget()
         self.sa_save_login_btn.grid(row=5, column=3, sticky=tk.E, pady=2)
         if flag == "new":
+            self.sa_property = ""
             self.sa_user_id_entry.grid(row=2, column=1, columnspan=3, sticky=tk.W+tk.E, pady=2)
             self.sa_user_id_combobox.grid_forget()
             self.sa_add_login_details_btn.grid_forget()
@@ -1272,10 +1299,9 @@ class MainWindow(ttk.Frame):
                 self.parent.after(10, self.process_sa_send_queue)
             elif isinstance(message, list):
                 os.remove(self.bookings_file)
-                self.send_sa_progress_var.set("Statistics for {} successfully sent! Identnummer: {} (bei Rückfragen "
-                                              "bitte angeben)".format(message[1], message[3]))
+                self.send_sa_progress_var.set("Statistics for {} successfully sent!".format(message[1]))
                 import display_results
-                display_results.ResultsWindow(self, message[2], message[1], message[3])
+                display_results.ResultsWindow(self, message[2], message[1])
                 self.send_sa_finish_btn.grid(row=2, column=0, pady=2, sticky=tk.W)
             elif message == "no date":
                 self.send_sa_progress_bar.grid_forget()
