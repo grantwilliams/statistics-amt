@@ -7,7 +7,7 @@ Usage:
 
 from setuptools import setup
 
-PACKAGES = ['bs4', 'mechanicalsoup', 'PIL', 'psutil', 'requests', 'selenium', 'wheel']
+PACKAGES = ['bs4', 'easyprocess', 'mechanicalsoup', 'PIL', 'requests', 'selenium', 'wheel']
 MODULES = ['calculate_statistics.py', 'combobox_dicts.py', 'country_dicts.py', 'display_results.py', 'hostelworld.py',
            'myallocator.py', 'sa_options.py', 'statistic_amt.py']
 APP = ['main.py']
