@@ -800,14 +800,14 @@ class MainWindow(ttk.Frame):
     def check_sa_credential(self, call_origin, ma_property):
         time_now = datetime.now().time()
         eleven = datetime.strptime("22:55", "%H:%M").time()
-        eleven_thirty = datetime.strptime("23:35", "%H:%M").time()
-        if eleven <= time_now <= eleven_thirty:
+        one_thirty = datetime.strptime("00:35", "%H:%M").time()
+        if eleven <= time_now <= one_thirty:
             if call_origin == "sa save details update" or call_origin == "sa save details new":
                 self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
-                self.sa_warning_var.set("Statistics Amt website is not available between 23:00 - 23:30")
+                self.sa_warning_var.set("Statistics Amt website is not available between 23:00 - 00:30")
             elif call_origin == "send stats":
                 self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
-                self.sa_options_warning_var.set("Statistics Amt website is not available between 23:00 - 23:30")
+                self.sa_options_warning_var.set("Statistics Amt website is not available between 23:00 - 00:30")
         else:
             if call_origin == "sa save details update" or call_origin == "sa save details new":
                 self.warning_lbl_style.configure('Warning.TLabel', foreground='green')
