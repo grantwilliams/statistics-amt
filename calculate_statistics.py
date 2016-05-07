@@ -83,8 +83,8 @@ def calculate(month, year, filename, progress_queue, channel):
     if sys.platform == "win32":
         locale.setlocale(locale.LC_TIME, "deu_deu")
     else:
-        locale.setlocale(locale.LC_TIME, "de_DE")
-    month_to_calculate = datetime.strptime("{}-{}".format(month, year), "%B-%Y")
+        locale.setlocale(locale.LC_TIME, "de_DE.utf-8")
+    month_to_calculate = datetime.strptime("{}-{}".format(month, year), "%m-%Y")
     progress_queue.put(10)
     with open(filename, encoding='utf-8') as file_read:
         bookings_csv_read = csv.reader(file_read)
@@ -164,8 +164,8 @@ def calculate(month, year, filename, progress_queue, channel):
             if not os.path.isdir("{}/Statistik-Amt/Statistics Saved Files".format(home)):
                 os.makedirs("{}/Statistik-Amt/Statistics Saved Files".format(home))
             file_location = "{}/Statistik-Amt/Statistics Saved Files".format(home)
-        with open("{}/Statistics-{}-{}.csv".format(file_location, month, year), 'w', newline='',
-                  encoding='utf-8') as write_file:
+        with open("{}/Statistics-{}-{}.csv".format(file_location, datetime.strptime(month, '%m').strftime('%B'), year),
+                  'w', newline='', encoding='utf-8') as write_file:
             statistics_csv_write = csv.writer(write_file)
 
             statistics_csv_write.writerow(['Country', 'Guests', 'Nights'])

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import re
 import os
 import sys
@@ -17,6 +18,7 @@ import statistic_amt
 import combobox_dicts
 import calculate_statistics
 from sa_options import *
+from selenium import webdriver
 
 
 """
@@ -41,7 +43,7 @@ class MainWindow(ttk.Frame):
             os.popen("attrib +h .images").close()
             os.popen("attrib +h .phantomjs").close()
         else:
-            locale.setlocale(locale.LC_TIME, "de_DE")
+            locale.setlocale(locale.LC_TIME, "de_DE.utf-8")
             warning_fs = "-size 10"
             upload_button_font = "-size 16"
             self.field_width = 30
@@ -49,6 +51,7 @@ class MainWindow(ttk.Frame):
 
         self.bookings_file = ""
         self.channel_manager = "--Select Channel Manager--"
+        self.temp_driver = None
 
         self.parent = parent
         self.pack(fill=tk.BOTH, expand=True)
@@ -260,7 +263,7 @@ class MainWindow(ttk.Frame):
         self.calculate_progress_lbl_var = tk.StringVar()
         self.calculate_progress_lbl = ttk.Label(self.calculate_frame, textvariable=self.calculate_progress_lbl_var)
         self.sa_calculate_separator = ttk.Separator(self.calculate_frame, orient="horizontal")
-        
+
         # Hostel World widgets
         self.hw_hostel_number = None
         self.hw_username = None
@@ -372,6 +375,10 @@ class MainWindow(ttk.Frame):
             self.upload_hostelworld_btn.configure(state=tk.DISABLED)
             self.upload_file_btn.configure(state=tk.DISABLED)
             return
+
+        #  opens a PhantomJS driver so the user can allow the permissions earlier on, before saving user/pass details
+        self.temp_driver = webdriver.PhantomJS(executable_path=".phantomjs/bin/phantomjs")
+        self.temp_driver.quit()
         self.update_idletasks()
 
     def setup_ma(self):
@@ -800,8 +807,8 @@ class MainWindow(ttk.Frame):
     def check_sa_credential(self, call_origin, ma_property):
         time_now = datetime.now().time()
         eleven = datetime.strptime("22:55", "%H:%M").time()
-        one_thirty = datetime.strptime("00:35", "%H:%M").time()
-        if eleven <= time_now <= one_thirty:
+        twelve_thirty = datetime.strptime("00:35", "%H:%M").time()
+        if eleven <= time_now <= twelve_thirty:
             if call_origin == "sa save details update" or call_origin == "sa save details new":
                 self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
                 self.sa_warning_var.set("Statistics Amt website is not available between 23:00 - 00:30")
@@ -951,26 +958,26 @@ class MainWindow(ttk.Frame):
         self.sa_warning_var.set("")
         self.statistics_results = None  # resets results if doing multiple calculations
         today_date = datetime.strptime(str(datetime.now())[:7], "%Y-%m")
-        month_chosen = self.month_combobox.get()
+        month_chosen = combobox_dicts.months[self.month_combobox.get()]
         year_chosen = self.year_combobox.get()
 
-        chosen_date_obj = None
         try:
-            chosen_date_obj = datetime.strptime("{}-{}".format(year_chosen, month_chosen), "%Y-%B")
+            chosen_date_obj = datetime.strptime("{}-{}".format(year_chosen, month_chosen), "%Y-%m")
         except ValueError:
             self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
             self.calculate_warning_var.set("Please choose a date first.")
+            return
 
         try:
-            date_in_past = chosen_date_obj < today_date
+            chosen_date_obj < today_date
         except TypeError:
-            date_in_past = False
             self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
             self.calculate_warning_var.set("Please choose a date first.")
+            return
 
         save_button_visible = self.sa_save_login_btn.winfo_ismapped()
         if not save_button_visible:
-            if date_in_past:
+            if chosen_date_obj < today_date:
                 if self.channel_manager == "Hostel World":
                     self.hw_warning_var.set("")
                     if not hw_bookings_downloaded:
@@ -1075,6 +1082,7 @@ class MainWindow(ttk.Frame):
             self.check_sa_credential("send stats", sa_property)
 
     def send_statistics(self, status, already_sent_continue=False):
+        self.send_sa_progress_lbl.configure(foreground='green')
         self.sa_options_warning_var.set("")
         self.send_sa_progress_var.set("")  # in case coming from 'Yes' resend statistics
         self.send_sa_progress_frame.grid_forget()  # in case coming from 'Yes' resend statistics
@@ -1301,7 +1309,7 @@ class MainWindow(ttk.Frame):
                 os.remove(self.bookings_file)
                 self.send_sa_progress_var.set("Statistics for {} successfully sent!".format(message[1]))
                 import display_results
-                display_results.ResultsWindow(self, message[2], message[1])
+                display_results.display_results(self, message[2], message[1])
                 self.send_sa_finish_btn.grid(row=2, column=0, pady=2, sticky=tk.W)
             elif message == "no date":
                 self.send_sa_progress_bar.grid_forget()
@@ -1326,7 +1334,7 @@ def main():
     root = tk.Tk()
     root.wm_title("Statistik Rechner")
     if sys.platform == "win32":
-        root.wm_iconbitmap(default=".icons/statistik-rechner-black.ico")
+        root.wm_iconbitmap(default=".icons/statistik-rechner-red.ico")
     root.resizable(0, 0)
     app = MainWindow(root)
     root.mainloop()
