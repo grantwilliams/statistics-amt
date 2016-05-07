@@ -1334,7 +1334,7 @@ def main():
     root = tk.Tk()
     root.wm_title("Statistik Rechner")
     if sys.platform == "win32":
-        root.wm_iconbitmap(default=".icons/statistik-rechner-red.ico")
+        root.wm_iconbitmap(default=".icons/statistik-rechner-bar-black.ico")
     root.resizable(0, 0)
     app = MainWindow(root)
     root.mainloop()
