@@ -66,6 +66,11 @@ class MainWindow(ttk.Frame):
         self.calculate_statistics_queue = queue.Queue()
         self.sa_send_queue = queue.Queue()
 
+        self.previously_run = dict()
+        if os.path.isfile(".data_files/previously_run.json"):
+            with open(".data_files/previously_run.json") as prev:
+                self.previously_run = json.load(prev)
+
         self.ma_login_details = dict()
         if os.path.isfile(".data_files/.ma_login.json"):
             with open(".data_files/.ma_login.json") as ma_json:
@@ -376,9 +381,17 @@ class MainWindow(ttk.Frame):
             self.upload_file_btn.configure(state=tk.DISABLED)
             return
 
-        #  opens a PhantomJS driver so the user can allow the permissions earlier on, before saving user/pass details
-        self.temp_driver = webdriver.PhantomJS(executable_path=".phantomjs/bin/phantomjs")
-        self.temp_driver.quit()
+        if not os.path.isfile(".data_files/previously_run.json"):
+            self.previously_run['previously run'] = False
+            with open(".data_files/previously_run.json", 'w', encoding='utf-8') as write:
+                json.dump(self.previously_run, indent=4, fp=write)
+        if not self.previously_run.get('previously run', False):
+            # opens a PhantomJS driver so the user can allow the permissions earlier on, before saving user/pass details
+            self.temp_driver = webdriver.PhantomJS(executable_path=".phantomjs/bin/phantomjs")
+            self.temp_driver.quit()
+            self.previously_run['previously run'] = True
+            with open(".data_files/previously_run.json", 'w', encoding='utf-8') as write:
+                json.dump(self.previously_run, indent=4, fp=write)
         self.update_idletasks()
 
     def setup_ma(self):
@@ -721,9 +734,10 @@ class MainWindow(ttk.Frame):
             self.hw_change_details_btn.grid_forget()
             self.hw_save_details_btn.grid(row=6, column=1, pady=2, sticky=tk.W)
             self.sa_password_entry.configure(state=tk.ACTIVE)
-            self.sa_bundesland_combobox.configure(state=tk.ACTIVE)
+            self.sa_bundesland_combobox.configure(state='readonly')
             self.sa_add_login_details_btn.configure(state=tk.ACTIVE)
             self.sa_change_details_btn.configure(state=tk.ACTIVE)
+            self.calculate_btn.configure(state=tk.ACTIVE)
         elif status == "failed":
             self.warning_lbl_style.configure('Warning.TLabel', foreground='red')
             self.calculate_warning_var.set("Hostel World site timed out, please try again later.")

@@ -197,18 +197,18 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
             progress_queue.put("assertion error")
             driver.quit()
             return
-    # driver.find_element_by_id("sendButton").click()
-    #
-    # html = driver.page_source
-    #
-    # soup = BeautifulSoup(html, "html.parser")
-    #
-    # if len(soup.find_all("div", {"class": "errorMessage"})) > 0:
-    #     progress_queue.put("assertion error")
-    #     driver.quit()
-    #     return
-    #
-    # driver.find_element_by_id("confirmButton").click()
+    driver.find_element_by_id("sendButton").click()
+
+    html = driver.page_source
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    if len(soup.find_all("div", {"class": "errorMessage"})) > 0:
+        progress_queue.put("assertion error")
+        driver.quit()
+        return
+
+    driver.find_element_by_id("confirmButton").click()
     progress_queue.put(["Finished", options_details["sub month"], statistics_results])
     driver.quit()
     return
