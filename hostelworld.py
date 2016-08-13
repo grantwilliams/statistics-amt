@@ -33,6 +33,11 @@ def check_cred(login_details, hw_cred_queue, call_origin):
         return
 
     if len(home_page.soup.find_all("div", {"id": "loginInfo"})) < 1:
+        if len(home_page.soup.find_all("p", {"class": "loginErrMsg"})) > 0:
+            if "3 failed login attempts" in home_page.soup.find_all("p", {"class": "loginErrMsg"})[0].text:
+                tkinter.messagebox.showerror("Too many failed attempts!", "{}\n\n*Can only be done through Hostel World*"
+                                             .format(home_page.soup.find_all("p", {"class": "loginErrMsg"})[0].text)
+                                             .replace("here", "at Hostel World"))
         hw_cred_queue.put("hw not ok {}".format(call_origin))
         return
     else:

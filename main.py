@@ -66,6 +66,18 @@ class MainWindow(ttk.Frame):
         self.calculate_statistics_queue = queue.Queue()
         self.sa_send_queue = queue.Queue()
 
+        if not os.path.isdir(".phantomjs"):
+            tkinter.messagebox.showerror("Folder missing!", "You seem to have deleted a folder called '.phantomjs', "
+                                                            "which is needed for automating the sending of the "
+                                                            "statistics, if you cannot restore it yourself, please "
+                                                            "contact statistik.rechner@gmail.com")
+            quit()
+
+        if not os.path.isdir(".data_files"):
+            os.mkdir(".data_files")
+            with open(".data_files/previously_run.json", 'w', encoding='utf-8') as create:
+                json.dump(obj={"previously run": False}, indent=4, fp=create)
+
         self.previously_run = dict()
         if os.path.isfile(".data_files/previously_run.json"):
             with open(".data_files/previously_run.json") as prev:
@@ -110,14 +122,15 @@ class MainWindow(ttk.Frame):
         # Title widgets
         self.title_frame = ttk.Frame(self)
         self.title_frame.columnconfigure(0, weight=1)
-        if sys.platform == 'win32':
-            title_png = Image.open(".images/title_img.png")
-            title_photo = ImageTk.PhotoImage(title_png)
-        else:
-            title_png = Image.open(".images/mac-title.png")
-            title_photo = ImageTk.PhotoImage(title_png)
-        self.title = ttk.Label(self.title_frame, image=title_photo)
-        self.title.image = title_photo
+        if os.path.isdir('.images'):
+            if sys.platform == 'win32':
+                title_png = Image.open(".images/title_img.png")
+                title_photo = ImageTk.PhotoImage(title_png)
+            else:
+                title_png = Image.open(".images/mac-title.png")
+                title_photo = ImageTk.PhotoImage(title_png)
+            self.title = ttk.Label(self.title_frame, image=title_photo)
+            self.title.image = title_photo
 
         #  Upload Style widgets
         self.upload_style_frame = ttk.Frame(self)
@@ -359,7 +372,8 @@ class MainWindow(ttk.Frame):
 
         # Pack title widgets
         self.title_frame.grid(row=0, column=0)
-        self.title.grid(row=0, column=0, sticky=tk.W+tk.E, padx=20)
+        if os.path.isdir('.images'):
+            self.title.grid(row=0, column=0, sticky=tk.W+tk.E, padx=20)
 
         self.upload_style()
 
@@ -374,7 +388,7 @@ class MainWindow(ttk.Frame):
         if self.sa_logins_used > 3:
             tk.messagebox.showinfo("Too Many Logins Saved", "Sorry, you have saved too many login details for the "
                                                             "Statistik Amt (maximum is 3), please delete some or "
-                                                            "contact grant.williams2986@gmail.com if you need to be "
+                                                            "contact statistik.rechner@gmail.com if you need to be "
                                                             "able to save more.", parent=self.parent)
             self.upload_myallocator_btn.configure(state=tk.DISABLED)
             self.upload_hostelworld_btn.configure(state=tk.DISABLED)
@@ -869,7 +883,7 @@ class MainWindow(ttk.Frame):
                             tk.messagebox.showinfo("Maximum Logins Used", "Sorry, you have already saved "
                                                                           "the maximum amount of logins (3).  "
                                                                           "If you need to add more, please contact "
-                                                                          "grant.williams2986@gmail.com",
+                                                                          "statistik.rechner@gmail.com",
                                                    parent=self.parent)
                             return
                     else:
@@ -890,7 +904,7 @@ class MainWindow(ttk.Frame):
                             tk.messagebox.showinfo("Maximum Logins Used", "Sorry, you have already saved "
                                                                           "the maximum amount of logins (3).  "
                                                                           "If you need to add more, please contact "
-                                                                          "grant.williams2986@gmail.com",
+                                                                          "statistik.rechner@gmail.com",
                                                    parent=self.parent)
                             return
                     # otherwise just update the dict entry
@@ -969,6 +983,9 @@ class MainWindow(ttk.Frame):
         self.sa_add_login_details_btn.configure(state=tk.DISABLED)
         self.calculate_warning_var.set("")
         self.browse_back_btn.configure(state=tk.DISABLED)
+        self.browse_files_btn.configure(state=tk.DISABLED)
+        self.browse_files_lbl.configure(state=tk.DISABLED)
+        self.channel_combobox.configure(state=tk.DISABLED)
         self.sa_warning_var.set("")
         self.statistics_results = None  # resets results if doing multiple calculations
         today_date = datetime.strptime(str(datetime.now())[:7], "%Y-%m")
@@ -1348,7 +1365,8 @@ def main():
     root = tk.Tk()
     root.wm_title("Statistik Rechner")
     if sys.platform == "win32":
-        root.wm_iconbitmap(default=".icons/statistik-rechner-bar-black.ico")
+        if os.path.isdir('.icons'):
+            root.wm_iconbitmap(default=".icons/statistik-rechner-bar-black.ico")
     root.resizable(0, 0)
     app = MainWindow(root)
     root.mainloop()

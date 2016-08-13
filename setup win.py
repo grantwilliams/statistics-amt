@@ -20,6 +20,6 @@ setup(
     zipfile=None,
     windows=[{
         "script": "main.py",
-        "icon_resources": [(1, ".icons/statistik-rechner-red.ico")]
+        "icon_resources": [(1, ".icons/statistik-rechner-bar-black.ico")]
     }],
 )

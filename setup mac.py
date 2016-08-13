@@ -14,7 +14,7 @@ APP = ['main.py']
 DATA_FILES = ['.data_files', '.images', '.icons', '.phantomjs']
 OPTIONS = {
     'argv_emulation': False,
-    'iconfile': '.icons/statistik-rechner-black.icns',
+    'iconfile': '.icons/statistik-rechner-bar-black.icns',
     'packages': PACKAGES,
     'includes': MODULES
 }
