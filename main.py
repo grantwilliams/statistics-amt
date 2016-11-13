@@ -42,6 +42,12 @@ class MainWindow(ttk.Frame):
             os.popen("attrib +h .icons").close()
             os.popen("attrib +h .images").close()
             os.popen("attrib +h .phantomjs").close()
+        elif sys.platform == 'linux':
+            self.pointer = 'hand2'
+            locale.setlocale(locale.LC_TIME, "de_DE.utf-8")
+            warning_fs = "-size 10"
+            upload_button_font = "-size 16"
+            self.field_width = 30
         else:
             locale.setlocale(locale.LC_TIME, "de_DE.utf-8")
             warning_fs = "-size 10"
