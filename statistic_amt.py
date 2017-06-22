@@ -73,6 +73,7 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     else:
         open_on = options_details["open on"]
     driver = webdriver.PhantomJS(executable_path=".phantomjs/bin/phantomjs")
+    # driver = webdriver.Chrome('../../chromedriver')
     driver.set_window_size(1920, 1080)
     driver.set_page_load_timeout(15)
 
@@ -130,17 +131,17 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
     except exceptions.NoSuchElementException:
         pass  # does not exist
     driver.find_element_by_id("confirmButton").click()
-    driver.find_element_by_link_text("Angebot").click()
     driver.find_element_by_name("AnzBetten").send_keys(options_details["beds"])
-    driver.find_element_by_link_text("Schließung/Abmeldung").click()
     driver.find_element_by_name("Schliessung").send_keys(options_details["closed on"], Keys.TAB, open_on, Keys.TAB,
                                                          options_details["force closure"])
     progress_queue.put(10)
-    driver.find_element_by_link_text("Gäste aus Europa").click()
+    driver.find_element_by_name("ANK_Deutschland").click()
 
     info_button_titles = ['Erläuterungen zum Wohnsitz der Gäste', 'Erläuterungen zur Schweiz',
-                          'Erläuterungen zu den Sonstigen Nordamerikanischen Ländern',
-                          'Erläuterungen zu den Arabischen Golfstaaten']
+                          'Erläuterungen zu Sonstiges Europa', 'Erläuterungen zu Sonstiges Afrika',
+                          'Erläuterungen zu Mittelamerika/Karibik', 'Erläuterungen zu Sonstiges Südamerika',
+                          'Erläuterungen zu Sonstiges Nordamerika', 'Erläuterungen zu den Arabischen Golfstaaten',
+                          'Erläuterungen zu Sonstiges Asien', 'Erläuterungen zu Ozeanien']
     progress_queue.put("Entering statistics for guests from Europe...")
     current_field = driver.find_element_by_name("ANK_Deutschland")
     for i in range(20):
@@ -153,8 +154,6 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
             current_field.send_keys(current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
             current_field = driver.switch_to.active_element
 
-    driver.find_element_by_link_text("Gäste aus Europa, Afrika").click()
-
     progress_queue.put("Entering statistics for guests from Europe and Africa...")
     current_field = driver.find_element_by_name("ANK_Polen")
     for i in range(17):
@@ -166,8 +165,6 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
         else:
             current_field.send_keys(current_stats[0], Keys.TAB, current_stats[1], Keys.TAB)
             current_field = driver.switch_to.active_element
-
-    driver.find_element_by_partial_link_text("Gäste aus Amerika").click()
 
     progress_queue.put("Entering statistics for guests from America, Asia etc...")
     current_field = driver.find_element_by_name("ANK_Kanada")
@@ -208,7 +205,7 @@ def send(login_details, options_details, progress_queue, ma_property, statistics
         driver.quit()
         return
 
-    driver.find_element_by_id("confirmButton").click()
-    progress_queue.put(["Finished", options_details["sub month"], statistics_results])
-    driver.quit()
-    return
+    if 'Ihre Daten wurden erfolgreich am' in html:
+        progress_queue.put(["Finished", options_details["sub month"], statistics_results])
+        driver.quit()
+        return

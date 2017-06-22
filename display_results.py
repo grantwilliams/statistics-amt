@@ -5,7 +5,7 @@ import threading
 import tkinter as tk
 from tkinter import ttk
 import tkinter.messagebox
-from PIL import ImageGrab
+import pyscreenshot as ImageGrab
 import time
 
 
@@ -29,7 +29,7 @@ def save_image(month, file_location, display_top_level, sent_confirm_frame):
 
 def save_thread_start(month, file_location, display_top_level, sent_confirm_frame):
     save_thread = threading.Thread(target=save_image, args=[month, file_location, display_top_level,
-                                   sent_confirm_frame])
+                                                            sent_confirm_frame])
     save_thread.daemon = True
     save_thread.start()
 
