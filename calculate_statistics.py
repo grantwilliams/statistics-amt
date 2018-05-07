@@ -61,7 +61,7 @@ channel_managers = {
         "canceled": 9,
         "canceled answer": "Yes",
         "nationality": 13,
-        "guests": 15,
+        "guests": 16,
         "date format": "%Y-%m-%d"
     },
     "Hostel World": {
